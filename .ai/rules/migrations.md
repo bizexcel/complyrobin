@@ -14,7 +14,7 @@ Enforced by `SchemaConventionsTest`.
 - **Foreign keys** are `{relation}_id`, named after the Eloquent relation: `owner()` → `owner_id`, `rotatedBy()` → `rotated_by_id`.
 - **Timestamps** are `*_at` and `timestamptz`; **plain dates** are `*_on`. Only `jobs`/`job_batches` keep Laravel's Unix integers.
 - **Booleans** start with `is_` or `has_`.
-- **No derivable columns** (status computed from dates, "was it on time") and **no columns for features that haven't shipped**. Don't add `created_by`/`updated_by`: the activity log records who changed what. Add a business actor column (`rotated_by_id`, `invited_by_id`) only when the product shows it.
+- **No derivable columns** (status computed from dates, "was it on time"), except a stored generated column (`->storedAs(...)`) when a query or index needs the value, as with `credentials.next_rotation_at`: the database computes it, so no write path can leave it stale. Its expression must be immutable (do date arithmetic `at time zone 'UTC'`) and **no columns for features that haven't shipped**. Don't add `created_by`/`updated_by`: the activity log records who changed what. Add a business actor column (`rotated_by_id`, `invited_by_id`) only when the product shows it.
 
 ## Create tenant tables with Schema::tenantTable()
 Any table holding one organisation's data is created with `Schema::tenantTable('name', fn (Blueprint $table) => …)`. It adds `id`, `organisation_id`, `unique(organisation_id, id)`, ENABLE + FORCE row level security and the `{table}_tenant_isolation` policy. Don't add `id`/`organisation_id` yourself. Enforced by `SchemaConventionsTest`.

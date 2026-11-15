@@ -194,3 +194,10 @@ it('uses BelongsToOrganisation on every model whose table has organisation_id', 
         }
     }
 });
+
+it('has no column in the credentials register that could hold the secret itself', function (): void {
+    $offenders = array_filter(schemaColumns(), fn (object $column): bool => in_array($column->table_name, ['applications', 'credentials', 'credential_rotations'], true)
+        && preg_match('/secret|password|token|api_key|private_key/', $column->column_name) === 1);
+
+    expect(describeColumns(array_values($offenders)))->toBe([]);
+});
