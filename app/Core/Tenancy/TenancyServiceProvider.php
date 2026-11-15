@@ -3,6 +3,8 @@
 namespace App\Core\Tenancy;
 
 use Closure;
+use Illuminate\Auth\Events\Authenticated;
+use Illuminate\Auth\Events\Logout;
 use Illuminate\Database\Events\ConnectionEstablished;
 use Illuminate\Database\Events\TransactionRolledBack;
 use Illuminate\Database\Schema\Blueprint;
@@ -24,7 +26,7 @@ class TenancyServiceProvider extends ServiceProvider
         Event::listen(function (ConnectionEstablished $event): void {
             $context = $this->app->make(TenantContext::class);
 
-            if ($event->connectionName === TenantContext::CONNECTION && $context->check()) {
+            if ($event->connectionName === TenantContext::CONNECTION && ($context->check() || $context->userId() !== null)) {
                 $context->applyTo($event->connection);
             }
         });
@@ -35,6 +37,15 @@ class TenancyServiceProvider extends ServiceProvider
             if ($event->connectionName === TenantContext::CONNECTION) {
                 $this->app->make(TenantContext::class)->applyTo($event->connection);
             }
+        });
+
+        // Mirror the signed-in user into the database, for policies that let users read their own rows.
+        Event::listen(function (Authenticated $event): void {
+            $this->app->make(TenantContext::class)->setUser((string) $event->user->getAuthIdentifier());
+        });
+
+        Event::listen(function (Logout $event): void {
+            $this->app->make(TenantContext::class)->setUser(null);
         });
 
         $this->registerSchemaMacros();

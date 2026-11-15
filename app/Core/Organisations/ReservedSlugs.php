@@ -11,11 +11,19 @@ final class ReservedSlugs
     public const array ALL = [
         'admin', 'api', 'app', 'www', 'login', 'logout', 'register', 'billing', 'settings', 'livewire', 'filament',
         'storage', 'up', 'health', 'airwallex', 'two-factor', 'password', 'email', 'invitations', 'docs', 'help',
-        'support', 'status',
+        'support', 'status', 'new',
     ];
+
+    /**
+     * Prefixes of paths whose exact name varies, e.g. Livewire's `livewire-{hash}` routes.
+     *
+     * @var list<string>
+     */
+    public const array PREFIXES = ['livewire-'];
 
     public static function contains(string $slug): bool
     {
-        return in_array($slug, self::ALL, true);
+        return in_array($slug, self::ALL, true)
+            || array_any(self::PREFIXES, fn (string $prefix): bool => str_starts_with($slug, $prefix));
     }
 }

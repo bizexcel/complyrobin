@@ -2,12 +2,14 @@
 
 namespace App\Core\Organisations\Models;
 
+use App\Core\Identity\Models\User;
 use Database\Factories\OrganisationFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
@@ -33,6 +35,14 @@ class Organisation extends Model
         'timezone' => 'Asia/Kuala_Lumpur',
         'previous_slugs' => '[]',
     ];
+
+    /**
+     * @return BelongsToMany<User, $this, Membership>
+     */
+    public function users(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class)->using(Membership::class)->withTimestamps();
+    }
 
     /**
      * @return array<string, string>

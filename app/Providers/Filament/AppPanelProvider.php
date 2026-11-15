@@ -2,6 +2,10 @@
 
 namespace App\Providers\Filament;
 
+use App\Core\Organisations\Models\Organisation;
+use App\Filament\App\Pages\RegisterOrganisation;
+use App\Filament\App\Tenancy\ResolveOrganisation;
+use App\Filament\App\Tenancy\SetCurrentOrganisation;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -28,6 +32,10 @@ class AppPanelProvider extends PanelProvider
             ->path('')
             ->login()
             ->brandName('ComplyRobin')
+            ->tenant(Organisation::class, slugAttribute: 'slug')
+            ->resolveTenantUsing(fn (string $key): Organisation => app(ResolveOrganisation::class)($key))
+            ->tenantRegistration(RegisterOrganisation::class)
+            ->tenantMiddleware([SetCurrentOrganisation::class], isPersistent: true)
             ->colors([
                 'primary' => Color::Indigo,
             ])

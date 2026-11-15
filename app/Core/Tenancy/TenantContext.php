@@ -16,7 +16,8 @@ use InvalidArgumentException;
  * The organisation the current request or job works for.
  *
  * The id is mirrored into the Postgres session setting `app.organisation_id`, which the
- * row-level security policies on every tenant table compare against.
+ * row-level security policies on every tenant table compare against. The signed-in user is
+ * mirrored into `app.user_id`, so a user can read their own memberships before choosing one.
  */
 class TenantContext
 {
@@ -27,6 +28,8 @@ class TenantContext
     public const string PLATFORM_CONNECTION = 'pgsql_platform';
 
     private ?string $organisationId = null;
+
+    private ?string $userId = null;
 
     private bool $bypassing = false;
 
@@ -48,7 +51,7 @@ class TenantContext
         }
 
         // Database first: if the statement fails, PHP keeps the previous tenant too.
-        $this->applyTo($this->db->connection(self::CONNECTION), $id);
+        $this->write($id, $this->userId);
         $this->organisationId = $id;
     }
 
@@ -75,8 +78,31 @@ class TenantContext
      */
     public function forget(): void
     {
-        $this->applyTo($this->db->connection(self::CONNECTION), null);
+        $this->write(null, $this->userId);
         $this->organisationId = null;
+    }
+
+    /**
+     * Set (or clear) the signed-in user. Called from the authentication events, not by application code.
+     *
+     * @throws InvalidArgumentException when the id is not a UUID
+     */
+    public function setUser(?string $userId): void
+    {
+        if ($userId !== null && ! Str::isUuid($userId)) {
+            throw new InvalidArgumentException('The user id must be a UUID.');
+        }
+
+        $this->write($this->organisationId, $userId);
+        $this->userId = $userId;
+    }
+
+    /**
+     * Get the signed-in user's id, if any.
+     */
+    public function userId(): ?string
+    {
+        return $this->userId;
     }
 
     /**
@@ -166,13 +192,24 @@ class TenantContext
     }
 
     /**
-     * Write an organisation id (default: the current one) into the connection's session.
+     * Write the current organisation and user into a connection's session, e.g. after it reconnects.
      */
-    public function applyTo(Connection $connection, ?string $organisationId = null): void
+    public function applyTo(Connection $connection): void
     {
-        $id = func_num_args() > 1 ? $organisationId : $this->organisationId;
+        $this->writeTo($connection, $this->organisationId, $this->userId);
+    }
 
-        $connection->statement("select set_config('app.organisation_id', ?, false)", [$id ?? '']);
+    private function write(?string $organisationId, ?string $userId): void
+    {
+        $this->writeTo($this->db->connection(self::CONNECTION), $organisationId, $userId);
+    }
+
+    private function writeTo(Connection $connection, ?string $organisationId, ?string $userId): void
+    {
+        $connection->statement(
+            "select set_config('app.organisation_id', ?, false), set_config('app.user_id', ?, false)",
+            [$organisationId ?? '', $userId ?? ''],
+        );
     }
 
     private function bypassIsAllowed(): bool

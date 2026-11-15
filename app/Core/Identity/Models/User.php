@@ -3,14 +3,20 @@
 namespace App\Core\Identity\Models;
 
 use App\Core\Identity\Enums\PlatformRole;
+use App\Core\Organisations\Models\Membership;
+use App\Core\Organisations\Models\Organisation;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
+use Filament\Models\Contracts\HasTenants;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -20,7 +26,7 @@ use Illuminate\Notifications\Notifiable;
 #[Fillable(['name', 'email', 'password'])]
 #[Hidden(['password', 'remember_token'])]
 #[UseFactory(UserFactory::class)]
-class User extends Authenticatable implements FilamentUser
+class User extends Authenticatable implements FilamentUser, HasTenants
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, HasUuids, Notifiable;
@@ -40,8 +46,32 @@ class User extends Authenticatable implements FilamentUser
     }
 
     /**
-     * The admin panel is for ComplyRobin staff only. Customer access to organisations is decided
-     * by memberships and tenancy (Phase 1).
+     * The organisations this user belongs to. Row-level security only shows a user's own memberships, so this reads
+     * correctly once the user is signed in (or inside one of the organisations).
+     *
+     * @return BelongsToMany<Organisation, $this, Membership>
+     */
+    public function organisations(): BelongsToMany
+    {
+        return $this->belongsToMany(Organisation::class)->using(Membership::class)->withTimestamps();
+    }
+
+    /**
+     * @return Collection<int, Organisation>
+     */
+    public function getTenants(Panel $panel): Collection
+    {
+        return $this->organisations()->orderBy('name')->get();
+    }
+
+    public function canAccessTenant(Model $tenant): bool
+    {
+        return $tenant instanceof Organisation && $this->organisations()->whereKey($tenant->getKey())->exists();
+    }
+
+    /**
+     * The admin panel is for ComplyRobin staff only. Customers reach the app panel, then only the organisations
+     * they belong to (see canAccessTenant()).
      */
     public function canAccessPanel(Panel $panel): bool
     {
