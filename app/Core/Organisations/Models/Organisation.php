@@ -13,13 +13,26 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 /**
  * A tenant. Sub-organisations point at their parent; billing resolves through root_id.
  * Not row-level-security scoped itself: access is decided by memberships.
+ *
+ * @property string $slug
+ * @property string $timezone
+ * @property list<string> $previous_slugs slugs it used before; they redirect here and nobody else may take them
  */
-#[Fillable(['name', 'slug', 'parent_id', 'root_id', 'settings'])]
+#[Fillable(['name', 'slug', 'timezone', 'parent_id', 'root_id', 'settings'])]
 #[UseFactory(OrganisationFactory::class)]
 class Organisation extends Model
 {
     /** @use HasFactory<OrganisationFactory> */
     use HasFactory, HasUuids, SoftDeletes;
+
+    /**
+     * @var array<string, mixed>
+     */
+    #[\Override]
+    protected $attributes = [
+        'timezone' => 'Asia/Kuala_Lumpur',
+        'previous_slugs' => '[]',
+    ];
 
     /**
      * @return array<string, string>
@@ -28,6 +41,7 @@ class Organisation extends Model
     {
         return [
             'settings' => 'array',
+            'previous_slugs' => 'array',
         ];
     }
 }
