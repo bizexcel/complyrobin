@@ -88,14 +88,99 @@ it('rejects a parent department from another organisation at the database', func
     ]);
 })->throws(QueryException::class, 'foreign key');
 
-it('uses uuid for every id column', function (): void {
-    $exempt = ['jobs', 'failed_jobs', 'job_batches', 'cache', 'cache_locks', 'sessions', 'migrations', 'password_reset_tokens'];
+/**
+ * Laravel and package tables that keep the package's own id type (bigint or string). They are internal and never
+ * appear in URLs. Columns that point at our models (morphs, user_id, organisation_id) are still checked.
+ *
+ * @return list<string>
+ */
+function packageTables(): array
+{
+    return [
+        'jobs', 'failed_jobs', 'job_batches', 'cache', 'cache_locks', 'sessions', 'migrations', 'password_reset_tokens',
+        'roles', 'permissions', 'activity_log', 'media', 'imports', 'exports', 'failed_import_rows',
+    ];
+}
 
-    $offenders = DB::connection('pgsql_migrator')->table('information_schema.columns')
-        ->where('table_schema', 'public')->where('column_name', 'id')->where('data_type', '!=', 'uuid')
-        ->whereNotIn('table_name', $exempt)->pluck('table_name')->all();
+/** @return list<object{table_name: string, column_name: string, data_type: string}> */
+function schemaColumns(): array
+{
+    return DB::connection('pgsql_migrator')->table('information_schema.columns')
+        ->where('table_schema', 'public')->orderBy('table_name')->orderBy('ordinal_position')
+        ->get(['table_name', 'column_name', 'data_type'])->all();
+}
 
-    expect($offenders)->toBe([]);
+/** @param  list<object{table_name: string, column_name: string, data_type: string}>  $columns
+ * @return list<string> */
+function describeColumns(array $columns): array
+{
+    return array_map(fn (object $column): string => "{$column->table_name}.{$column->column_name} ({$column->data_type})", $columns);
+}
+
+it('uses uuid for every id and *_id column', function (): void {
+    $packageForeignKeys = ['role_id', 'permission_id', 'import_id', 'export_id'];
+
+    $offenders = array_filter(schemaColumns(), fn (object $column): bool => $column->data_type !== 'uuid'
+        && (($column->column_name === 'id' && ! in_array($column->table_name, packageTables(), true))
+            || (str_ends_with($column->column_name, '_id') && ! in_array($column->column_name, $packageForeignKeys, true))));
+
+    expect(describeColumns(array_values($offenders)))->toBe([]);
+});
+
+it('names timestamps *_at and stores them with a time zone', function (): void {
+    $unixTimestampTables = ['jobs', 'job_batches'];
+
+    $offenders = array_filter(schemaColumns(), function (object $column) use ($unixTimestampTables): bool {
+        $isTimestamp = str_starts_with($column->data_type, 'timestamp');
+
+        if (str_ends_with($column->column_name, '_at')) {
+            return $column->data_type !== 'timestamp with time zone' && ! in_array($column->table_name, $unixTimestampTables, true);
+        }
+
+        return $isTimestamp;
+    });
+
+    expect(describeColumns(array_values($offenders)))->toBe([]);
+});
+
+it('names plain dates *_on', function (): void {
+    $offenders = array_filter(schemaColumns(), fn (object $column): bool => $column->data_type === 'date'
+        && ! str_ends_with($column->column_name, '_on'));
+
+    expect(describeColumns(array_values($offenders)))->toBe([]);
+});
+
+it('names booleans is_* or has_*', function (): void {
+    $offenders = array_filter(schemaColumns(), fn (object $column): bool => $column->data_type === 'boolean'
+        && ! in_array($column->table_name, packageTables(), true)
+        && ! preg_match('/^(is|has)_/', $column->column_name));
+
+    expect(describeColumns(array_values($offenders)))->toBe([]);
+});
+
+it('names tables in the plural, and pivots as singular_singular in alphabetical order', function (): void {
+    $tables = DB::connection('pgsql_migrator')->table('pg_tables')->where('schemaname', 'public')->pluck('tablename')->all();
+
+    $isPivot = function (string $table) use ($tables): bool {
+        $words = explode('_', $table);
+
+        for ($split = 1; $split < count($words); $split++) {
+            $left = implode('_', array_slice($words, 0, $split));
+            $right = implode('_', array_slice($words, $split));
+
+            if ($left < $right && in_array(Str::plural($left), $tables, true) && in_array(Str::plural($right), $tables, true)) {
+                return true;
+            }
+        }
+
+        return false;
+    };
+
+    $offenders = array_filter($tables, fn (string $table): bool => ! in_array($table, packageTables(), true)
+        && Str::plural(Str::singular($table)) !== $table
+        && ! $isPivot($table));
+
+    expect(array_values($offenders))->toBe([]);
 });
 
 it('uses BelongsToOrganisation on every model whose table has organisation_id', function (): void {
