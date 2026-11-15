@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Admin\Middleware\RunAsPlatform;
 use Filament\Auth\MultiFactor\App\AppAuthentication;
 use Filament\Auth\MultiFactor\Email\EmailAuthentication;
 use Filament\Http\Middleware\Authenticate;
@@ -56,6 +57,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
-            ]);
+                RunAsPlatform::class,
+            ], isPersistent: true);
     }
 }

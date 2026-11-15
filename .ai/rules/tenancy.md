@@ -12,7 +12,7 @@ paths:
 `Tenancy::run($organisation, fn () => …)` for work on behalf of one organisation; `Tenancy::id()` to read it. The id is mirrored into the Postgres setting `app.organisation_id`, which row-level security checks.
 
 ## Bypass is rare and explained
-`Tenancy::bypass('reason', fn () => …)` is allowed for console commands; the staff panel will be allowed via `Tenancy::allowBypassUsing()` when it is wired (Phase 1). It switches to the `pgsql_platform` connection, logs the reason, and refuses to run inside an open tenant transaction. `Tenancy::run()` inside a bypass leaves the bypass and runs scoped — use that to loop over organisations. Never bypass to "make a query work".
+`Tenancy::bypass('reason', fn () => …)` is allowed for console commands and for staff-panel requests: `App\Filament\Admin\Middleware\RunAsPlatform` (persistent auth middleware) runs each signed-in staff member's request inside a bypass and allows it only for that request. It switches to the `pgsql_platform` connection, logs the reason, and refuses to run inside an open tenant transaction. `Tenancy::run()` inside a bypass leaves the bypass and runs scoped — use that to loop over organisations. Never bypass to "make a query work".
 
 ## The database follows PHP
 `Tenancy::set()` writes the database first, then PHP; a transaction rollback or reconnect re-applies what PHP holds. The signed-in user is mirrored the same way into `app.user_id` (set from Laravel's `Authenticated` event, cleared on `Logout`), so policies can let users read their own rows, such as their memberships in `organisation_user`. Don't call `set_config(...)` anywhere else.
