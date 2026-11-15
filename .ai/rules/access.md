@@ -1,6 +1,7 @@
 ---
 paths:
   - app/Core/Access/**
+  - app/Core/Entitlements/**
   - database/seeders/PermissionSeeder.php
 ---
 
@@ -20,3 +21,6 @@ Members join through `InviteMember` (needs `members.manage`; only an Owner invit
 
 ## Signing in
 Both panels require multi-factor authentication (Filament's authenticator app with recovery codes, or an email code): a user without it is sent to set it up first. `login_attempts` records every sign-in and failed sign-in from Laravel's `Login`/`Failed` events; the tenant role may insert into it but never read it.
+
+## Modules are entitlements
+Check a module with `app(Entitlements::class)->has(Module::Credentials)` inside the organisation. Entitlements belong to the root organisation and its sub-organisations share them (a row-level security policy lets a sub-organisation read its root's grants). Platform staff grant modules with `GrantModule`; the tenant role can't write `module_grants`. Results are cached under `org:{root}:entitlements` for five minutes and cleared when a grant changes. Paid subscriptions join the same check in the billing phase.
