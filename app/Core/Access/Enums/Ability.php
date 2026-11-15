@@ -11,4 +11,8 @@ enum Ability: string
     case ManageMembers = 'members.manage';
     case ManagePeople = 'people.manage';
     case ManageTasks = 'tasks.manage';
+    case ManageCredentials = 'credentials.manage';
+    case RotateCredentials = 'credentials.rotate';
+    case ManageChannels = 'channels.manage';
+    case ExportAudit = 'audit.export';
 }

@@ -4,6 +4,7 @@ namespace App\Core\Access\Models;
 
 use App\Core\Audit\Concerns\LogsTenantActivity;
 use App\Core\Tenancy\Concerns\BelongsToOrganisation;
+use App\Core\Tenancy\Facades\Tenancy;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -21,12 +22,17 @@ class Role extends SpatieRole
 
     /**
      * spatie doesn't put the team on role_has_permissions; the table requires it, so links stay inside the organisation.
+     * Eager loading calls this on a blank role, so fall back to the current organisation (row-level security limits
+     * the rows either way).
      *
      * @return BelongsToMany<Permission, $this>
      */
     #[\Override]
     public function permissions(): BelongsToMany
     {
-        return parent::permissions()->withPivotValue('organisation_id', $this->organisation_id);
+        $relation = parent::permissions();
+        $organisationId = $this->getAttribute('organisation_id') ?? (Tenancy::check() ? Tenancy::id() : null);
+
+        return $organisationId === null ? $relation : $relation->withPivotValue('organisation_id', $organisationId);
     }
 }

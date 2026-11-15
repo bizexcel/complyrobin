@@ -54,3 +54,25 @@ it('refuses to give a member a role from another organisation', function (): voi
         'organisation_id' => $acme->id, 'role_id' => $globexOwnerRole, 'model_type' => $alice->getMorphClass(), 'model_id' => $alice->id,
     ]));
 })->throws(QueryException::class, 'foreign key');
+
+it('gives existing organisations a new ability when roles are synced', function (): void {
+    $organisation = app(CreateOrganisation::class)->handle(User::factory()->create(), 'Acme');
+    Tenancy::run($organisation, fn (): Spatie\Permission\Models\Role => Role::findByName(SystemRole::Admin->value)->revokePermissionTo(Ability::ManageTasks->value));
+
+    $this->artisan('access:sync-system-roles')->assertSuccessful();
+
+    expect(Tenancy::run($organisation, fn (): bool => Role::findByName(SystemRole::Admin->value)->hasPermissionTo(Ability::ManageTasks->value)))->toBeTrue();
+});
+
+it('never removes or duplicates an ability when roles are synced', function (): void {
+    $organisation = app(CreateOrganisation::class)->handle(User::factory()->create(), 'Acme');
+    Tenancy::run($organisation, fn (): Spatie\Permission\Models\Role => Role::findByName(SystemRole::Viewer->value)->givePermissionTo(Ability::ManagePeople->value));
+    $links = fn (): int => Tenancy::run($organisation, fn (): int => DB::table('role_has_permissions')->count());
+    $before = $links();
+
+    $this->artisan('access:sync-system-roles')->assertSuccessful();
+    $this->artisan('access:sync-system-roles')->assertSuccessful();
+
+    expect($links())->toBe($before)
+        ->and(Tenancy::run($organisation, fn (): bool => Role::findByName(SystemRole::Viewer->value)->hasPermissionTo(Ability::ManagePeople->value)))->toBeTrue();
+});

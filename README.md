@@ -30,6 +30,7 @@ After migrating as the owner, seed the code-defined permissions (idempotent):
 ```bash
 php artisan migrate --database=pgsql_migrator --force
 php artisan db:seed --class=PermissionSeeder --database=pgsql_migrator --force
+php artisan access:sync-system-roles
 ```
 
 ## Database roles

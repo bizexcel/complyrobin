@@ -2,9 +2,8 @@
 
 namespace App\Core\Organisations\Actions;
 
-use App\Core\Access\Enums\Ability;
+use App\Core\Access\Actions\SyncSystemRoles;
 use App\Core\Access\Enums\SystemRole;
-use App\Core\Access\Models\Role;
 use App\Core\Identity\Models\User;
 use App\Core\Organisations\Models\Organisation;
 use App\Core\Organisations\OrganisationSlugs;
@@ -15,7 +14,7 @@ use Throwable;
 
 final readonly class CreateOrganisation
 {
-    public function __construct(private OrganisationSlugs $slugs) {}
+    public function __construct(private OrganisationSlugs $slugs, private SyncSystemRoles $syncSystemRoles) {}
 
     /**
      * Create a top-level organisation, named in URLs by a slug generated from its name, with the system roles and its
@@ -35,12 +34,7 @@ final readonly class CreateOrganisation
 
             Tenancy::run($organisation, function () use ($organisation, $owner): void {
                 $organisation->users()->attach($owner);
-
-                foreach (SystemRole::cases() as $systemRole) {
-                    Role::create(['name' => $systemRole->value, 'guard_name' => 'web'])
-                        ->givePermissionTo(array_map(fn (Ability $ability): string => $ability->value, $systemRole->abilities()));
-                }
-
+                $this->syncSystemRoles->handle();
                 $owner->assignRole(SystemRole::Owner->value);
             });
 
