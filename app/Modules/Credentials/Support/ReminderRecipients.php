@@ -7,6 +7,7 @@ use App\Core\Access\Members;
 use App\Core\Entitlements\Entitlements;
 use App\Core\Entitlements\Enums\Feature;
 use App\Core\Identity\Models\User;
+use App\Core\Notifications\Models\NotificationChannel;
 use App\Core\Organisations\Models\Organisation;
 use App\Core\People\Models\Person;
 use App\Core\Tenancy\Facades\Tenancy;
@@ -19,6 +20,7 @@ use App\Modules\Credentials\Models\Credential;
  *
  * - The owner, always. If the owner can't be reached (no owner, deleted, or neither an email nor a membership), the
  *   organisation's Owners and Admins instead, so a reminder always lands.
+ * - On Team, every enabled and verified team chat channel too.
  * - On Team (escalation), while overdue: the backup owner too from day 3, and Owners and Admins from day 7. Nobody
  *   gets the same reminder twice: an admin who is also the owner hears once.
  */
@@ -35,6 +37,12 @@ final readonly class ReminderRecipients
         $recipients = $owner instanceof Person && self::isReachable($owner)
             ? [new ReminderRecipient(ReminderAudience::Owner, person: $owner)]
             : self::admins();
+
+        if ($this->entitlements->allows(Feature::ChatChannels)) {
+            foreach ($this->readyChannels() as $channel) {
+                $recipients[] = new ReminderRecipient(ReminderAudience::Channel, channel: $channel);
+            }
+        }
 
         if ($step->kind !== ReminderKind::Overdue || ! $this->entitlements->allows(Feature::Escalation)) {
             return $recipients;
@@ -67,6 +75,14 @@ final readonly class ReminderRecipients
             ->map(fn (User $user): ReminderRecipient => new ReminderRecipient(ReminderAudience::Admin, user: $user))
             ->values()
             ->all();
+    }
+
+    /**
+     * @return list<NotificationChannel>
+     */
+    private function readyChannels(): array
+    {
+        return NotificationChannel::query()->where('is_enabled', true)->whereNotNull('verified_at')->orderBy('name')->get()->all();
     }
 
     public static function isReachable(Person $person): bool

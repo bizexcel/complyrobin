@@ -12,4 +12,7 @@ enum ReminderAudience: string
 
     /** The organisation's Owners and Admins: when overdue reminders escalate, or when nobody else can be reached. */
     case Admin = 'admin';
+
+    /** A team chat channel (Team). */
+    case Channel = 'channel';
 }

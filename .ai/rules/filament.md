@@ -26,3 +26,6 @@ Both panels show database notifications. They belong to a user across organisati
 
 ## Tenant middleware runs on Livewire requests
 Register tenant middleware with `isPersistent: true` so Livewire update requests carry the tenant.
+
+## Outgoing webhooks
+Team chat channels (`App\Core\Notifications`) post only to URLs that pass `AllowedWebhookUrl`: https, port 443, no user details, and a host from `config('services.chat_webhooks')` (exact for Slack, dot-prefixed suffix for Teams workflows). `ChatDelivery` re-checks the URL on every send, never follows redirects, uses short timeouts and never shows the remote reply. Webhook URLs are encrypted, hidden and write-only in forms (never filled back). A channel gets reminders only after `SendTestMessage` succeeds, and only while the plan allows it.

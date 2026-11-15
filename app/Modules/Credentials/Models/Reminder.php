@@ -4,6 +4,7 @@ namespace App\Modules\Credentials\Models;
 
 use App\Core\Audit\Concerns\LogsTenantActivity;
 use App\Core\Identity\Models\User;
+use App\Core\Notifications\Models\NotificationChannel;
 use App\Core\People\Models\Person;
 use App\Core\Tenancy\Concerns\BelongsToOrganisation;
 use App\Modules\Credentials\Enums\ReminderAudience;
@@ -19,6 +20,7 @@ use Illuminate\Support\Carbon;
  * @property string $credential_id
  * @property string|null $person_id
  * @property string|null $user_id
+ * @property string|null $notification_channel_id
  * @property ReminderKind $kind
  * @property ReminderAudience $audience
  * @property int $offset_days
@@ -61,6 +63,14 @@ class Reminder extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * @return BelongsTo<NotificationChannel, $this>
+     */
+    public function notificationChannel(): BelongsTo
+    {
+        return $this->belongsTo(NotificationChannel::class);
     }
 
     /**

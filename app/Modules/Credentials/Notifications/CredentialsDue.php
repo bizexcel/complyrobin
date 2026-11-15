@@ -3,6 +3,7 @@
 namespace App\Modules\Credentials\Notifications;
 
 use App\Core\Identity\Models\User;
+use App\Core\Notifications\ChatMessage;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
@@ -63,6 +64,18 @@ class CredentialsDue extends Notification
             'view' => null,
             'viewData' => [],
         ];
+    }
+
+    /**
+     * The same digest for a team chat channel.
+     */
+    public function toChatMessage(): ChatMessage
+    {
+        return new ChatMessage(
+            $this->title(),
+            array_map(fn (array $item): string => "{$item['reference']} · {$item['name']} ({$item['application']}): ".$this->when($item['days'], $item['due_on']), $this->items),
+            $this->url,
+        );
     }
 
     private function title(): string

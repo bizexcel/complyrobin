@@ -2,7 +2,10 @@
 
 namespace App\Modules\Credentials\Jobs;
 
+use App\Core\Entitlements\Entitlements;
 use App\Core\Identity\Models\User;
+use App\Core\Notifications\Channels\ChatDelivery;
+use App\Core\Notifications\Models\NotificationChannel;
 use App\Core\Organisations\Models\Organisation;
 use App\Core\Tenancy\Facades\Tenancy;
 use App\Modules\Credentials\Models\Credential;
@@ -35,10 +38,10 @@ class DeliverReminders implements ShouldQueue
      */
     public function __construct(public readonly array $reminderIds) {}
 
-    public function handle(): void
+    public function handle(Entitlements $entitlements, ChatDelivery $delivery): void
     {
         $organisation = Organisation::query()->findOrFail(Tenancy::id());
-        $reminders = Reminder::query()->whereKey($this->reminderIds)->whereNull('sent_at')->with(['credential.application', 'person.user', 'user'])->get()
+        $reminders = Reminder::query()->whereKey($this->reminderIds)->whereNull('sent_at')->with(['credential.application', 'person.user', 'user', 'notificationChannel'])->get()
             ->filter(fn (Reminder $reminder): bool => $this->isStillDue($reminder));
 
         $first = $reminders->first();
@@ -52,6 +55,20 @@ class DeliverReminders implements ShouldQueue
             route('filament.app.resources.credentials.index', ['tenant' => $organisation->slug]),
             $reminders->map(fn (Reminder $reminder): array => $this->item($reminder, $organisation->timezone))->values()->all(),
         );
+
+        if ($first->notification_channel_id !== null) {
+            $channel = $first->notificationChannel;
+
+            // Paused after a downgrade, or switched off since it was claimed: leave it unsent.
+            if (! $channel instanceof NotificationChannel || ! $channel->isReady() || ! $entitlements->allows($channel->type->feature())) {
+                return;
+            }
+
+            $delivery->send($channel, $notification->toChatMessage());
+            Reminder::query()->whereKey($reminders->modelKeys())->update(['sent_at' => now()]);
+
+            return;
+        }
 
         $user = $first->user ?? ($first->person !== null ? ReminderRecipients::memberOf($first->person) : null);
 

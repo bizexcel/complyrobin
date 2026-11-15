@@ -55,13 +55,13 @@ final readonly class ClaimDueReminders
 
             foreach ($this->recipients->for($credential, $step) as $recipient) {
                 $id = DB::scalar(<<<'SQL'
-                    insert into reminders (id, organisation_id, credential_id, person_id, user_id, kind, audience, offset_days, due_at, created_at)
-                    values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    insert into reminders (id, organisation_id, credential_id, person_id, user_id, notification_channel_id, kind, audience, offset_days, due_at, created_at)
+                    values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     on conflict do nothing
                     returning id
                     SQL, [
                     (string) Str::uuid7(), $organisation->getKey(), $credential->getKey(), $recipient->person?->getKey(),
-                    $recipient->user?->getKey(), $step->kind->value, $recipient->audience->value, $step->offsetDays,
+                    $recipient->user?->getKey(), $recipient->channel?->getKey(), $step->kind->value, $recipient->audience->value, $step->offsetDays,
                     $credential->next_rotation_at, $now,
                 ]);
 
@@ -87,8 +87,12 @@ final readonly class ClaimDueReminders
 
         return Reminder::query()->whereNull('sent_at')->whereNull('failed_at')
             ->where('created_at', '<', $now->copy()->subMinutes(self::RETRY_AFTER_MINUTES))
-            ->get(['id', 'person_id', 'user_id'])
-            ->groupBy(fn (Reminder $reminder): string => $reminder->person_id !== null ? "person:{$reminder->person_id}" : "user:{$reminder->user_id}")
+            ->get(['id', 'person_id', 'user_id', 'notification_channel_id'])
+            ->groupBy(fn (Reminder $reminder): string => match (true) {
+                $reminder->person_id !== null => "person:{$reminder->person_id}",
+                $reminder->notification_channel_id !== null => "channel:{$reminder->notification_channel_id}",
+                default => "user:{$reminder->user_id}",
+            })
             ->map(fn ($reminders): array => $reminders->pluck('id')->values()->all())
             ->all();
     }

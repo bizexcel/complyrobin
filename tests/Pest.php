@@ -6,6 +6,7 @@ use App\Core\Entitlements\Actions\GrantModule;
 use App\Core\Entitlements\Enums\Module;
 use App\Core\Identity\Enums\PlatformRole;
 use App\Core\Identity\Models\User;
+use App\Core\Notifications\Actions\CreateNotificationChannel;
 use App\Core\Organisations\Actions\CreateOrganisation;
 use App\Core\Organisations\Actions\InviteMember;
 use App\Core\Organisations\Models\Organisation;
@@ -113,6 +114,7 @@ function populatedOrganisation(string $name): Organisation
             'evidence' => [evidencePdf()],
         ]);
         Credential::factory()->dueIn(5)->create(['application_id' => $application->id, 'owner_id' => $person->id]);
+        app(CreateNotificationChannel::class)->handle($owner, ['type' => 'slack', 'name' => '#ops', 'webhook_url' => 'https://hooks.slack.com/services/T000/B000/XXXX']);
         app(ClaimDueReminders::class)->handle(now());
 
     });

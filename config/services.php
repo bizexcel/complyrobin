@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+    // Hosts ComplyRobin may post team chat reminders to (exact for Slack, by dot-prefixed suffix for Teams workflows).
+    'chat_webhooks' => [
+        'slack_hosts' => ['hooks.slack.com'],
+        'teams_host_suffixes' => ['.logic.azure.com', '.environment.api.powerplatform.com'],
+    ],
+
 ];
