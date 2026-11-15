@@ -4,6 +4,7 @@ namespace App\Core\Entitlements\Actions;
 
 use App\Core\Entitlements\Entitlements;
 use App\Core\Entitlements\Enums\Module;
+use App\Core\Entitlements\Enums\Plan;
 use App\Core\Entitlements\Models\ModuleGrant;
 use App\Core\Identity\Enums\PlatformRole;
 use App\Core\Identity\Models\User;
@@ -19,10 +20,11 @@ final readonly class GrantModule
 
     /**
      * Grant a module to a root organisation (and so its sub-organisations) for a period. Platform staff only.
+     * Any module puts the organisation on Team; pass Plan::Enterprise with the credentials module for Enterprise.
      *
      * @throws AuthorizationException
      */
-    public function handle(User $staff, Organisation $organisation, Module $module, CarbonInterface $startsAt, ?CarbonInterface $endsAt = null, ?string $note = null): ModuleGrant
+    public function handle(User $staff, Organisation $organisation, Module $module, CarbonInterface $startsAt, ?CarbonInterface $endsAt = null, ?string $note = null, ?Plan $plan = null): ModuleGrant
     {
         if (! $staff->platform_role instanceof PlatformRole) {
             throw new AuthorizationException('Only platform staff can grant modules.');
@@ -32,6 +34,10 @@ final readonly class GrantModule
             throw new InvalidArgumentException('Grant modules to the root organisation; its sub-organisations share them.');
         }
 
+        if ($plan instanceof Plan && ($module !== Module::Credentials || $plan === Plan::Free)) {
+            throw new InvalidArgumentException('Only the credentials module carries a plan, and it is Team or Enterprise.');
+        }
+
         if ($endsAt instanceof CarbonInterface && $endsAt->lessThanOrEqualTo($startsAt)) {
             throw new InvalidArgumentException('A grant must end after it starts.');
         }
@@ -39,6 +45,7 @@ final readonly class GrantModule
         $grant = Tenancy::bypass("grant {$module->value} to an organisation", fn (): ModuleGrant => tap(
             new ModuleGrant([
                 'module' => $module,
+                'plan' => $plan,
                 'granted_by_id' => $staff->getKey(),
                 'starts_at' => $startsAt,
                 'ends_at' => $endsAt,

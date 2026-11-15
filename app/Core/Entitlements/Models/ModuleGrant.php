@@ -4,6 +4,7 @@ namespace App\Core\Entitlements\Models;
 
 use App\Core\Audit\Concerns\LogsTenantActivity;
 use App\Core\Entitlements\Enums\Module;
+use App\Core\Entitlements\Enums\Plan;
 use App\Core\Identity\Models\User;
 use App\Core\Tenancy\Concerns\BelongsToOrganisation;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -16,10 +17,11 @@ use Illuminate\Support\Carbon;
  * A module granted to a root organisation by platform staff, for a period.
  *
  * @property Module $module
+ * @property Plan|null $plan
  * @property Carbon $starts_at
  * @property Carbon|null $ends_at
  */
-#[Fillable(['module', 'granted_by_id', 'starts_at', 'ends_at', 'note'])]
+#[Fillable(['module', 'plan', 'granted_by_id', 'starts_at', 'ends_at', 'note'])]
 class ModuleGrant extends Model
 {
     use BelongsToOrganisation, HasUuids, LogsTenantActivity;
@@ -39,6 +41,7 @@ class ModuleGrant extends Model
     {
         return [
             'module' => Module::class,
+            'plan' => Plan::class,
             'starts_at' => 'datetime',
             'ends_at' => 'datetime',
         ];

@@ -24,3 +24,6 @@ Both panels require multi-factor authentication (Filament's authenticator app wi
 
 ## Modules are entitlements
 Check a module with `app(Entitlements::class)->has(Module::Credentials)` inside the organisation. Entitlements belong to the root organisation and its sub-organisations share them (a row-level security policy lets a sub-organisation read its root's grants). Platform staff grant modules with `GrantModule`; the tenant role can't write `module_grants`. Results are cached under `org:{root}:entitlements` for five minutes and cleared when a grant changes. Paid subscriptions join the same check in the billing phase.
+
+## Plans, features and limits
+Every organisation is on a `Plan` (Free, Team, Enterprise): Enterprise if granted, Team with any module (an ISO module includes Team), otherwise Free. Ask the current organisation's plan with `Entitlements::allows(Feature::X)` and `Entitlements::limit(Limit::X)` (null means unlimited); never compare plan names in feature code. The numbers live in `config/plans.php` (Free: 3 members, 10 credentials, email/in-app/calendar only; Team: 10 members, unlimited credentials, every paid feature). Enforce a limit in the Action that adds the record (`InviteMember` counts members plus open invitations; `AcceptInvitation` re-checks). Downgrading never deletes or locks existing records: it only stops new ones.

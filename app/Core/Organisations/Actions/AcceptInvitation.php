@@ -2,6 +2,8 @@
 
 namespace App\Core\Organisations\Actions;
 
+use App\Core\Entitlements\Entitlements;
+use App\Core\Entitlements\Enums\Limit;
 use App\Core\Identity\Models\User;
 use App\Core\Organisations\Exceptions\InvalidInvitation;
 use App\Core\Organisations\Models\Invitation;
@@ -10,8 +12,10 @@ use App\Core\Tenancy\Facades\Tenancy;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 
-final class AcceptInvitation
+final readonly class AcceptInvitation
 {
+    public function __construct(private Entitlements $entitlements) {}
+
     /**
      * Join the organisation the invitation is for, with its role. The signed-in user's verified email must be the invited one.
      * The token is looked up inside the organisation named in the link, so a token can't be used anywhere else.
@@ -33,6 +37,12 @@ final class AcceptInvitation
             }
 
             if (! $user->canAccessTenant($organisation)) {
+                $limit = $this->entitlements->limit(Limit::Members);
+
+                if ($limit !== null && $organisation->users()->count() >= $limit) {
+                    throw new AuthorizationException('This organisation has reached its plan\'s member limit.');
+                }
+
                 $organisation->users()->attach($user);
             }
 

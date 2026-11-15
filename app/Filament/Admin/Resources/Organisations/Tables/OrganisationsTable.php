@@ -4,6 +4,7 @@ namespace App\Filament\Admin\Resources\Organisations\Tables;
 
 use App\Core\Entitlements\Actions\GrantModule;
 use App\Core\Entitlements\Enums\Module;
+use App\Core\Entitlements\Enums\Plan;
 use App\Core\Identity\Models\User;
 use App\Core\Organisations\Models\Organisation;
 use Filament\Actions\Action;
@@ -36,6 +37,10 @@ class OrganisationsTable
                     ->visible(fn (Organisation $record): bool => $record->root_id === null)
                     ->schema([
                         Select::make('module')->options(collect(Module::cases())->mapWithKeys(fn (Module $module): array => [$module->value => $module->name]))->required(),
+                        Select::make('plan')
+                            ->options([Plan::Team->value => 'Team', Plan::Enterprise->value => 'Enterprise'])
+                            ->default(Plan::Team->value)
+                            ->helperText('Any module puts the organisation on Team. Enterprise applies with the credentials module.'),
                         DateTimePicker::make('starts_at')->default(now())->required(),
                         DateTimePicker::make('ends_at')->after('starts_at'),
                         Textarea::make('note')->maxLength(1000),
@@ -51,6 +56,7 @@ class OrganisationsTable
                             Carbon::parse($data['starts_at']),
                             filled($data['ends_at'] ?? null) ? Carbon::parse($data['ends_at']) : null,
                             $data['note'] ?? null,
+                            $data['module'] === Module::Credentials->value && ($data['plan'] ?? null) === Plan::Enterprise->value ? Plan::Enterprise : null,
                         );
 
                         Notification::make()->title('Module granted')->success()->send();

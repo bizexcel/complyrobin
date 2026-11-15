@@ -6,10 +6,8 @@ use App\Core\Organisations\Actions\CreateOrganisation;
 use App\Core\Organisations\Actions\InviteMember;
 use App\Core\Organisations\Models\Invitation;
 use App\Core\Organisations\Models\Organisation;
-use App\Core\Organisations\Notifications\InvitationNotification;
 use App\Core\Tenancy\Facades\Tenancy;
 use Illuminate\Auth\Access\AuthorizationException;
-use Illuminate\Notifications\AnonymousNotifiable;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
 
@@ -22,21 +20,6 @@ beforeEach(function (): void {
 function invite(Organisation $organisation, User $actor, string $email, string $role = 'Editor'): Invitation
 {
     return Tenancy::run($organisation, fn () => app(InviteMember::class)->handle($actor, $email, $role));
-}
-
-/**
- * The link emailed to the address.
- */
-function invitationLink(string $email): string
-{
-    $link = null;
-    Notification::assertSentTo(new AnonymousNotifiable, InvitationNotification::class, function (InvitationNotification $notification, array $channels, AnonymousNotifiable $notifiable) use ($email, &$link): bool {
-        $link = $notification->url;
-
-        return $notifiable->routes['mail'] === $email;
-    });
-
-    return $link;
 }
 
 it('emails a link and stores only a hash of its token', function (): void {

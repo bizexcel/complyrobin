@@ -5,6 +5,8 @@ namespace App\Core\Organisations\Actions;
 use App\Core\Access\Enums\Ability;
 use App\Core\Access\Enums\SystemRole;
 use App\Core\Access\Models\Role;
+use App\Core\Entitlements\Entitlements;
+use App\Core\Entitlements\Enums\Limit;
 use App\Core\Identity\Models\User;
 use App\Core\Organisations\Models\Invitation;
 use App\Core\Organisations\Models\Organisation;
@@ -18,8 +20,10 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
-final class InviteMember
+final readonly class InviteMember
 {
+    public function __construct(private Entitlements $entitlements) {}
+
     public const int DAYS_VALID = 7;
 
     /**
@@ -48,6 +52,8 @@ final class InviteMember
 
             if ($organisation->users()->whereRaw('lower(email) = ?', [$email])->exists()) {
                 $validator->errors()->add('email', 'This person is already a member.');
+            } elseif (($limit = $this->entitlements->limit(Limit::Members)) !== null && $this->seatsTaken($organisation, $email) >= $limit) {
+                $validator->errors()->add('email', "Your plan allows {$limit} members, counting open invitations. Upgrade to invite more.");
             }
         })->validate();
 
@@ -69,5 +75,19 @@ final class InviteMember
         ));
 
         return $invitation;
+    }
+
+    /**
+     * Members plus open invitations, not counting an open invitation to this email (inviting again replaces it).
+     */
+    private function seatsTaken(Organisation $organisation, string $email): int
+    {
+        $openInvitations = Invitation::query()
+            ->whereNull('accepted_at')
+            ->where('expires_at', '>', now())
+            ->where('email', '!=', $email)
+            ->count();
+
+        return $organisation->users()->count() + $openInvitations;
     }
 }

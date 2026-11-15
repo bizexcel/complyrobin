@@ -2,6 +2,7 @@
 
 use App\Core\Entitlements\Entitlements;
 use App\Core\Entitlements\Enums\Module;
+use App\Core\Entitlements\Enums\Plan;
 use App\Core\Identity\Enums\PlatformRole;
 use App\Core\Identity\Models\User;
 use App\Core\Organisations\Actions\CreateOrganisation;
@@ -38,10 +39,11 @@ it('lets staff grant a module to an organisation', function (): void {
     Filament::setCurrentPanel('admin');
 
     Tenancy::bypass('test: staff panel', fn () => Livewire::test(ListOrganisations::class)
-        ->callTableAction('grantModule', $this->acme, ['module' => Module::Credentials->value, 'starts_at' => now()->subMinute()])
+        ->callTableAction('grantModule', $this->acme, ['module' => Module::Credentials->value, 'plan' => Plan::Team->value, 'starts_at' => now()->subMinute()])
         ->assertHasNoTableActionErrors());
 
     expect(Tenancy::run($this->acme, fn (): bool => app(Entitlements::class)->has(Module::Credentials)))->toBeTrue()
+        ->and(Tenancy::run($this->acme, fn (): Plan => app(Entitlements::class)->plan()))->toBe(Plan::Team)
         ->and(Tenancy::run($this->globex, fn (): bool => app(Entitlements::class)->has(Module::Credentials)))->toBeFalse();
 });
 
