@@ -14,6 +14,7 @@ use App\Core\People\Models\Department;
 use App\Core\People\Models\Person;
 use App\Core\Tasks\Actions\CreateTask;
 use App\Core\Tenancy\Facades\Tenancy;
+use App\Modules\Credentials\Actions\RecordRotation;
 use App\Modules\Credentials\Models\Application;
 use App\Modules\Credentials\Models\Credential;
 use Filament\Facades\Filament;
@@ -103,7 +104,8 @@ function populatedOrganisation(string $name): Organisation
         $person = Person::factory()->create(['department_id' => $department->id]);
         app(CreateTask::class)->handle($owner, ['title' => 'Rotate a key', 'assignee_id' => $person->id], $person);
         $application = Application::factory()->create(['owner_id' => $person->id]);
-        Credential::factory()->create(['application_id' => $application->id, 'owner_id' => $person->id]);
+        $credential = Credential::factory()->create(['application_id' => $application->id, 'owner_id' => $person->id]);
+        app(RecordRotation::class)->handle($owner, $credential, ['notes' => 'Rotated for the fixture']);
 
         DB::connection('pgsql_migrator')->table('media')->insert([
             'id' => (string) Str::uuid7(), 'organisation_id' => $organisation->id, 'uuid' => (string) Str::uuid7(),

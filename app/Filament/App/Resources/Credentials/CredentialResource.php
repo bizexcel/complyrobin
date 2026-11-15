@@ -6,6 +6,7 @@ use App\Filament\App\Resources\Credentials\Pages\CreateCredential;
 use App\Filament\App\Resources\Credentials\Pages\EditCredential;
 use App\Filament\App\Resources\Credentials\Pages\ListCredentials;
 use App\Filament\App\Resources\Credentials\Pages\ViewCredential;
+use App\Filament\App\Resources\Credentials\RelationManagers\RotationsRelationManager;
 use App\Filament\App\Resources\Credentials\Schemas\CredentialForm;
 use App\Filament\App\Resources\Credentials\Schemas\CredentialInfolist;
 use App\Filament\App\Resources\Credentials\Tables\CredentialsTable;
@@ -47,6 +48,13 @@ class CredentialResource extends Resource
     public static function table(Table $table): Table
     {
         return CredentialsTable::configure($table);
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            RotationsRelationManager::class,
+        ];
     }
 
     public static function getPages(): array

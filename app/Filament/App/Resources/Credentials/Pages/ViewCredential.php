@@ -17,6 +17,7 @@ class ViewCredential extends ViewRecord
     {
         return [
             EditAction::make()->visible(fn (Credential $record): bool => $record->revoked_at === null),
+            CredentialPresenter::recordRotationAction(),
             CredentialPresenter::revokeAction(),
         ];
     }

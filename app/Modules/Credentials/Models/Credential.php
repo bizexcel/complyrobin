@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
@@ -70,6 +71,14 @@ class Credential extends Model
     public function backupOwner(): BelongsTo
     {
         return $this->belongsTo(Person::class);
+    }
+
+    /**
+     * @return HasMany<CredentialRotation, $this>
+     */
+    public function rotations(): HasMany
+    {
+        return $this->hasMany(CredentialRotation::class);
     }
 
     public function status(?CarbonInterface $now = null, ?string $timezone = null): CredentialStatus

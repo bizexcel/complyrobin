@@ -48,6 +48,7 @@ class CredentialsTable
             ->recordActions([
                 ViewAction::make(),
                 EditAction::make()->visible(fn (Credential $record): bool => $record->revoked_at === null),
+                CredentialPresenter::recordRotationAction(),
                 CredentialPresenter::revokeAction(),
                 DeleteAction::make()->using(fn (Credential $record) => app(DeleteCredential::class)->handle(Actor::current(), $record)),
             ]);

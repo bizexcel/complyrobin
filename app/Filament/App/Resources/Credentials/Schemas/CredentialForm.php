@@ -5,6 +5,7 @@ namespace App\Filament\App\Resources\Credentials\Schemas;
 use App\Modules\Credentials\Enums\CredentialType;
 use App\Modules\Credentials\Enums\Environment;
 use App\Modules\Credentials\Models\Application;
+use App\Modules\Credentials\Models\Credential;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -47,7 +48,11 @@ class CredentialForm
                 Textarea::make('used_in')->label('Where it\'s used')->maxLength(2000)->helperText('e.g. "Laravel Cloud production: STRIPE_SECRET"')->columnSpanFull(),
                 TextInput::make('hint')->maxLength(8)->helperText('Optional: the first or last few characters, to tell keys apart. Never the whole key.'),
                 TextInput::make('rotation_days')->label('Rotate every (days)')->numeric()->minValue(1)->maxValue(1095),
-                DateTimePicker::make('last_rotated_at')->label('Last rotated')->maxDate(now()),
+                DateTimePicker::make('last_rotated_at')
+                    ->label('Last rotated')
+                    ->maxDate(now())
+                    ->disabled(fn (?Credential $record): bool => $record?->rotations()->exists() ?? false)
+                    ->helperText(fn (?Credential $record): ?string => $record?->rotations()->exists() ? 'Set by recorded rotations.' : null),
                 DateTimePicker::make('expires_at')->label('Expires (if the vendor sets an expiry)'),
             ]);
     }

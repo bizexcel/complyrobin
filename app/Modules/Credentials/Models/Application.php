@@ -22,6 +22,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property Criticality $criticality
  * @property string|null $owner_id
  * @property string|null $backup_owner_id
+ * @property string|null $console_url
+ * @property Vendor|null $vendor
  */
 #[Fillable(['vendor_id', 'name', 'criticality', 'owner_id', 'backup_owner_id', 'console_url', 'notes'])]
 #[UseFactory(ApplicationFactory::class)]
