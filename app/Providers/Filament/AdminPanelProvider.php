@@ -28,6 +28,7 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
+            ->databaseNotifications()
             ->multiFactorAuthentication([AppAuthentication::make()->recoverable(), EmailAuthentication::make()], isRequired: true)
             ->brandName('ComplyRobin Admin')
             ->colors([

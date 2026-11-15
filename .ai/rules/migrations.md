@@ -6,7 +6,7 @@ paths:
 # Migrations
 
 ## Use uuid primary keys
-Every table uses `$table->uuid('id')->primary()` and `foreignUuid()` for references; every `*_id` column is uuid. Only Laravel and package tables keep their own id type: `jobs`, `job_batches`, `failed_jobs`, `cache`, `cache_locks`, `sessions`, `password_reset_tokens`, `migrations`, spatie's `media` and Filament's `imports`/`exports`/`failed_import_rows`, plus the `import_id`/`export_id` keys pointing at them. spatie's roles, permissions and activity log use uuid ids through our own models. Morph, `user_id` and `organisation_id` columns in those tables are still uuid. Enforced by `SchemaConventionsTest` ("uses uuid for every id and *_id column"); the list lives in `packageTables()` there.
+Every table uses `$table->uuid('id')->primary()` and `foreignUuid()` for references; every `*_id` column is uuid. Only Laravel and package tables keep their own id type: `jobs`, `job_batches`, `failed_jobs`, `cache`, `cache_locks`, `sessions`, `password_reset_tokens`, `migrations`, and Filament's `imports`/`exports`/`failed_import_rows`, plus the `import_id`/`export_id` keys pointing at them. spatie's roles, permissions, activity log and media use uuid ids through our own models. Morph, `user_id` and `organisation_id` columns in those tables are still uuid. Enforced by `SchemaConventionsTest` ("uses uuid for every id and *_id column"); the list lives in `packageTables()` there.
 
 ## Name things the Laravel way
 Enforced by `SchemaConventionsTest`.

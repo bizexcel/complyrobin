@@ -100,7 +100,7 @@ function packageTables(): array
 {
     return [
         'jobs', 'failed_jobs', 'job_batches', 'cache', 'cache_locks', 'sessions', 'migrations', 'password_reset_tokens',
-        'media', 'imports', 'exports', 'failed_import_rows',
+        'imports', 'exports', 'failed_import_rows',
     ];
 }
 

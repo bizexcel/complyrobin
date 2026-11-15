@@ -19,7 +19,10 @@ Use `scopedExists()` / `scopedUnique()` or `Rule::exists()->where('organisation_
 A shared resource is an abstract base with form/table schema classes; each framework (BCMS, ISMS) has a thin subclass that sets its framework and cluster. Disable global search on the base class and scope each subclass to its management system.
 
 ## Files and identifiers
-Upload directories are closures that prefix `org/{organisation_id}/…`, with private visibility. Show the `reference`, never the uuid.
+Attach files through spatie medialibrary (`HasMedia` on the model, `SpatieMediaLibraryFileUpload` in forms): `App\Core\Files\TenantPathGenerator` stores them under `org/{organisation_id}/{uuid}/` on the private `MEDIA_DISK`, and the `media` table is tenant-scoped. Serve files through temporary signed URLs only. Show the `reference`, never the uuid.
+
+## In-app notifications
+Both panels show database notifications. They belong to a user across organisations, so send only short text and deep links, never sensitive content; row-level security lets each user read only their own.
 
 ## Tenant middleware runs on Livewire requests
 Register tenant middleware with `isPersistent: true` so Livewire update requests carry the tenant.

@@ -33,6 +33,7 @@ class AppPanelProvider extends PanelProvider
             ->id('app')
             ->path('')
             ->login()
+            ->databaseNotifications()
             ->multiFactorAuthentication([AppAuthentication::make()->recoverable(), EmailAuthentication::make()], isRequired: true)
             ->registration()
             ->passwordReset()
