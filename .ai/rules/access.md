@@ -14,3 +14,6 @@ Authorise with `Gate::forUser($actor)->authorize(Ability::X->value)` (or `$user-
 
 ## spatie in teams mode, made tenant-safe
 The team is the organisation and follows `Tenancy` automatically (the `TenantChanged` event), including spatie's permission cache, which is kept per organisation (`org:{id}:permissions:{version}`). `User` uses `HasOrganisationRoles`, which drops roles loaded for a previous organisation; never use spatie's `HasRoles` directly. Give a role permissions with `$role->givePermissionTo()`: `Role::permissions()` stamps the organisation on `role_has_permissions`. Roles and all three pivots have row-level security, and the pivots reference roles through composite keys. `AccessServiceProvider` and `RolesTest` enforce this.
+
+## Invitations
+Members join through `InviteMember` (needs `members.manage`; only an Owner invites an Owner; one open invitation per email, re-inviting replaces it) and `AcceptInvitation`. The emailed link carries the organisation's slug and a random token; only its sha-256 is stored. A link is accepted only by a signed-in user whose **verified** email is the invited one, so signing up with someone else's address gets nothing.

@@ -11,7 +11,7 @@ final class ReservedSlugs
     public const array ALL = [
         'admin', 'api', 'app', 'www', 'login', 'logout', 'register', 'billing', 'settings', 'livewire', 'filament',
         'storage', 'up', 'health', 'airwallex', 'two-factor', 'password', 'email', 'invitations', 'docs', 'help',
-        'support', 'status', 'new',
+        'support', 'status', 'new', 'password-reset', 'email-verification',
     ];
 
     /**
