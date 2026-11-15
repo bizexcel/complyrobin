@@ -11,4 +11,5 @@ The customer panel lives at `/{organisation-slug}`. A non-member requesting a sl
 
 ## Routes outside the panels
 - `GET /invitations/{slug}/{token}` (`invitations.accept`, throttled): guests are sent to sign in and back; anything wrong with the link is a plain 404.
+- `GET /calendar/{slug}/{token}.ics` (`calendar.feed`): a member's private calendar link, fetched by calendar apps. It runs without the `web` middleware (no session, cookies or CSRF) and is throttled per address and per link (`calendar-feed` in `AppServiceProvider`). The slug may be a previous one, so links survive a rename. Only a hash of the token is stored; the link is a 404 once it is replaced or switched off, or its member has left. The feed (`RenderCalendarFeed`) never carries the hint, `used_in` or notes.
 - `POST /api/enquiries` for the Astro site: Turnstile-verified, rate limited, CORS limited to www.complyrobin.com.

@@ -16,6 +16,7 @@ use App\Core\People\Models\Person;
 use App\Core\Tasks\Actions\CreateTask;
 use App\Core\Tenancy\Facades\Tenancy;
 use App\Modules\Credentials\Actions\ClaimDueReminders;
+use App\Modules\Credentials\Actions\CreateCalendarFeed;
 use App\Modules\Credentials\Actions\RecordRotation;
 use App\Modules\Credentials\Models\Application;
 use App\Modules\Credentials\Models\Credential;
@@ -116,6 +117,7 @@ function populatedOrganisation(string $name): Organisation
         Credential::factory()->dueIn(5)->create(['application_id' => $application->id, 'owner_id' => $person->id]);
         app(CreateNotificationChannel::class)->handle($owner, ['type' => 'slack', 'name' => '#ops', 'webhook_url' => 'https://hooks.slack.com/services/T000/B000/XXXX']);
         app(ClaimDueReminders::class)->handle(now());
+        app(CreateCalendarFeed::class)->handle($owner);
 
     });
 
