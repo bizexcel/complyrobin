@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 /**
  * Someone in the organisation: staff or a contact, with or without a login.
  *
+ * @property string|null $user_id
  * @property string $name
  * @property string|null $email
  */
