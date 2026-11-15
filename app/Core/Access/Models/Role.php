@@ -2,6 +2,7 @@
 
 namespace App\Core\Access\Models;
 
+use App\Core\Audit\Concerns\LogsTenantActivity;
 use App\Core\Tenancy\Concerns\BelongsToOrganisation;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -16,7 +17,7 @@ use Spatie\Permission\Models\Role as SpatieRole;
 #[Fillable(['name', 'guard_name'])]
 class Role extends SpatieRole
 {
-    use BelongsToOrganisation, HasUuids;
+    use BelongsToOrganisation, HasUuids, LogsTenantActivity;
 
     /**
      * spatie doesn't put the team on role_has_permissions; the table requires it, so links stay inside the organisation.

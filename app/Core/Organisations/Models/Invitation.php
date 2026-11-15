@@ -2,6 +2,7 @@
 
 namespace App\Core\Organisations\Models;
 
+use App\Core\Audit\Concerns\LogsTenantActivity;
 use App\Core\Identity\Models\User;
 use App\Core\Tenancy\Concerns\BelongsToOrganisation;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -24,7 +25,7 @@ use Illuminate\Support\Carbon;
 #[Hidden(['token'])]
 class Invitation extends Model
 {
-    use BelongsToOrganisation, HasUuids;
+    use BelongsToOrganisation, HasUuids, LogsTenantActivity;
 
     /**
      * @return BelongsTo<User, $this>

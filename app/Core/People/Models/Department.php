@@ -2,6 +2,7 @@
 
 namespace App\Core\People\Models;
 
+use App\Core\Audit\Concerns\LogsTenantActivity;
 use App\Core\Tenancy\Concerns\BelongsToOrganisation;
 use Database\Factories\DepartmentFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -16,5 +17,5 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Department extends Model
 {
     /** @use HasFactory<DepartmentFactory> */
-    use BelongsToOrganisation, HasFactory, HasUuids, SoftDeletes;
+    use BelongsToOrganisation, HasFactory, HasUuids, LogsTenantActivity, SoftDeletes;
 }

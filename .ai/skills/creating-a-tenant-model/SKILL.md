@@ -10,7 +10,7 @@ Use it whenever you add data that belongs to one organisation.
 
 ## Checklist
 1. **Migration** — `Schema::tenantTable('things', function (Blueprint $table) { … })`; reference other tenant tables with `$table->uuid('x_id'); $table->tenantForeign('x_id', 'xs');`. Use `timestampsTz()` and `softDeletesTz()` where records are archived.
-2. **Model** in `app/<Area>/Models` — `use BelongsToOrganisation, HasFactory, HasUuids;`, `#[Fillable([...])]` without `organisation_id`, `#[UseFactory(ThingFactory::class)]`, enum casts with `@property` annotations.
+2. **Model** in `app/<Area>/Models` — `use BelongsToOrganisation, HasFactory, HasUuids, LogsTenantActivity;` (the audit trail; mark secrets `#[Hidden]` or `encrypted` and they are never logged), `#[Fillable([...])]` without `organisation_id`, `#[UseFactory(ThingFactory::class)]`, enum casts with `@property` annotations.
 3. **Factory** in `database/factories` — no `organisation_id`; tests create inside `Tenancy::run($org, fn () => Thing::factory()->create())`.
 4. **Reference number** if users talk about it — via the `Numbering` service.
 5. **Policy** and **Actions** for every write.

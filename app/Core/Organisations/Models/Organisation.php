@@ -2,6 +2,7 @@
 
 namespace App\Core\Organisations\Models;
 
+use App\Core\Audit\Concerns\LogsTenantActivity;
 use App\Core\Identity\Models\User;
 use Database\Factories\OrganisationFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -25,7 +26,14 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Organisation extends Model
 {
     /** @use HasFactory<OrganisationFactory> */
-    use HasFactory, HasUuids, SoftDeletes;
+    use HasFactory, HasUuids, LogsTenantActivity, SoftDeletes;
+
+    /**
+     * Only changes are audited: an organisation is created before it has an audit trail to write to.
+     *
+     * @var list<string>
+     */
+    protected static array $recordEvents = ['updated'];
 
     /**
      * @var array<string, mixed>

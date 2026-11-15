@@ -2,6 +2,7 @@
 
 namespace App\Core\Organisations\Models;
 
+use App\Core\Audit\Concerns\LogsTenantActivity;
 use App\Core\Identity\Models\User;
 use App\Core\Tenancy\Concerns\BelongsToOrganisation;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -14,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\Pivot;
  */
 class Membership extends Pivot
 {
-    use BelongsToOrganisation, HasUuids;
+    use BelongsToOrganisation, HasUuids, LogsTenantActivity;
 
     #[\Override]
     protected $table = 'organisation_user';

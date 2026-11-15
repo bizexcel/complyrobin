@@ -100,7 +100,7 @@ function packageTables(): array
 {
     return [
         'jobs', 'failed_jobs', 'job_batches', 'cache', 'cache_locks', 'sessions', 'migrations', 'password_reset_tokens',
-        'roles', 'permissions', 'activity_log', 'media', 'imports', 'exports', 'failed_import_rows',
+        'media', 'imports', 'exports', 'failed_import_rows',
     ];
 }
 
@@ -120,7 +120,7 @@ function describeColumns(array $columns): array
 }
 
 it('uses uuid for every id and *_id column', function (): void {
-    $packageForeignKeys = ['role_id', 'permission_id', 'import_id', 'export_id'];
+    $packageForeignKeys = ['import_id', 'export_id'];
 
     $offenders = array_filter(schemaColumns(), fn (object $column): bool => $column->data_type !== 'uuid'
         && (($column->column_name === 'id' && ! in_array($column->table_name, packageTables(), true))
