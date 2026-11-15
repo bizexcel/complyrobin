@@ -35,6 +35,11 @@ return [
         ],
     ],
 
+    // ComplyRobin's Telegram bot, which posts reminders to the chats organisations verify. Telegram is offered only when set.
+    'telegram' => [
+        'bot_token' => env('TELEGRAM_BOT_TOKEN'),
+    ],
+
     // Hosts ComplyRobin may post team chat reminders to (exact for Slack, by dot-prefixed suffix for Teams workflows).
     'chat_webhooks' => [
         'slack_hosts' => ['hooks.slack.com'],

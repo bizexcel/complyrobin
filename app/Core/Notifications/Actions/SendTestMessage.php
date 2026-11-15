@@ -8,6 +8,7 @@ use App\Core\Notifications\Channels\ChatDelivery;
 use App\Core\Notifications\Channels\ChatDeliveryFailed;
 use App\Core\Notifications\ChatMessage;
 use App\Core\Notifications\Models\NotificationChannel;
+use App\Core\Notifications\VerificationCodes;
 use App\Core\Tenancy\Facades\Tenancy;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Gate;
@@ -18,10 +19,11 @@ final readonly class SendTestMessage
 {
     public const int PER_MINUTE = 5;
 
-    public function __construct(private Entitlements $entitlements, private ChatDelivery $delivery) {}
+    public function __construct(private Entitlements $entitlements, private ChatDelivery $delivery, private VerificationCodes $verificationCodes) {}
 
     /**
      * Post a test message to the channel. When it's accepted, the channel is verified and starts getting reminders.
+     * A Telegram channel gets a code instead, which must be typed back (VerifyNotificationChannel).
      *
      * @throws AuthorizationException
      * @throws ValidationException
@@ -41,6 +43,12 @@ final readonly class SendTestMessage
         }
 
         RateLimiter::hit($key, 60);
+
+        if ($channel->type->needsVerificationCode()) {
+            $this->verificationCodes->send($channel);
+
+            return $channel;
+        }
 
         try {
             $this->delivery->send($channel, new ChatMessage(

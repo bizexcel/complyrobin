@@ -18,7 +18,7 @@ use Illuminate\Support\Carbon;
  *
  * @property ChannelType $type
  * @property string $name
- * @property array{webhook_url?: string} $settings
+ * @property array{webhook_url?: string, chat_id?: string} $settings
  * @property bool $is_enabled
  * @property Carbon|null $verified_at
  */

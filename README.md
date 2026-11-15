@@ -1,6 +1,6 @@
 # ComplyRobin
 
-**The bird that reminds you on time.** ComplyRobin keeps track of the SaaS tokens and keys your business runs on: who owns each one, where it is used, when it was last rotated and when it is due. Reminders arrive by email, Slack, Teams, WhatsApp, Telegram, in-app or your calendar, and every rotation is logged as evidence. The same register then feeds ISO management systems: **BCMS** (ISO 22301) and **ISMS** (ISO 27001:2022).
+**The bird that reminds you on time.** ComplyRobin keeps track of the SaaS tokens and keys your business runs on: who owns each one, where it is used, when it was last rotated and when it is due. Reminders arrive by email, Slack, Teams, Telegram, in-app or your calendar, and every rotation is logged as evidence. The same register then feeds ISO management systems: **BCMS** (ISO 22301) and **ISMS** (ISO 27001:2022).
 
 ComplyRobin stores information *about* credentials, never the secret values.
 

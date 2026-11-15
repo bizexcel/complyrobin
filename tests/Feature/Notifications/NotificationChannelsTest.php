@@ -9,24 +9,35 @@ use App\Core\Identity\Models\User;
 use App\Core\Notifications\Actions\CreateNotificationChannel;
 use App\Core\Notifications\Actions\DeleteNotificationChannel;
 use App\Core\Notifications\Actions\SendTestMessage;
+use App\Core\Notifications\Actions\VerifyNotificationChannel;
 use App\Core\Notifications\Models\NotificationChannel;
 use App\Core\Organisations\Actions\CreateOrganisation;
 use App\Core\Organisations\Models\Organisation;
 use App\Core\People\Models\Person;
 use App\Core\Tenancy\Facades\Tenancy;
+use App\Filament\App\Resources\NotificationChannels\Pages\CreateNotificationChannel as CreateNotificationChannelPage;
+use App\Filament\App\Resources\NotificationChannels\Pages\ListNotificationChannels;
 use App\Modules\Credentials\Models\Application;
 use App\Modules\Credentials\Models\Credential;
+use Filament\Actions\Testing\TestAction;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\QueryException;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
+use Illuminate\Log\Events\MessageLogged;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Livewire\Livewire;
 
 const SLACK_URL = 'https://hooks.slack.com/services/T000/B000/abc123';
+const TELEGRAM_TOKEN = '123456789:TEST-bot-token';
+const TELEGRAM_CHAT = '-1001234567890';
 const TEAMS_URL = 'https://prod-12.westus.logic.azure.com:443/workflows/abc/triggers/manual/paths/invoke?sig=xyz';
 
 beforeEach(function (): void {
@@ -208,3 +219,181 @@ it('refuses a reminder with no recipient or with two', function (Closure $recipi
     'no recipient' => fn (): array => [],
     'a person and a channel' => fn ($person, $channel): array => ['person_id' => $person->id, 'notification_channel_id' => $channel->id],
 ])->throws(QueryException::class, 'reminders_one_recipient');
+
+function telegramChannel(?Organisation $organisation = null, ?User $actor = null): NotificationChannel
+{
+    config(['services.telegram.bot_token' => TELEGRAM_TOKEN]);
+
+    return addChannel(['type' => 'telegram', 'name' => 'Ops group', 'chat_id' => TELEGRAM_CHAT], $actor, $organisation);
+}
+
+/**
+ * The code the bot last sent, read from the recorded request.
+ */
+function sentTelegramCode(): string
+{
+    $request = collect(Http::recorded())->map(fn (array $pair): Request => $pair[0])
+        ->last(fn (Request $request): bool => str_contains((string) ($request->data()['text'] ?? ''), 'Your ComplyRobin code'));
+
+    expect($request)->not->toBeNull();
+    preg_match('/\b(\d{6})\b/', (string) $request->data()['text'], $matches);
+
+    return $matches[1];
+}
+
+function enterCode(NotificationChannel $channel, string $code): NotificationChannel
+{
+    return Tenancy::run(test()->organisation, fn (): NotificationChannel => app(VerifyNotificationChannel::class)->handle(test()->owner, $channel, $code));
+}
+
+it('sends Telegram a code through the bot, and confirms the chat only when the code is typed back', function (): void {
+    teamPlanFor($this->organisation);
+    Http::fake(['*' => Http::response(['ok' => true])]);
+    $channel = telegramChannel();
+
+    testChannel($channel);
+
+    Http::assertSent(fn (Request $request): bool => $request->url() === 'https://api.telegram.org/bot'.TELEGRAM_TOKEN.'/sendMessage'
+        && $request->data()['chat_id'] === TELEGRAM_CHAT);
+    $code = sentTelegramCode();
+    expect(Tenancy::run($this->organisation, fn () => $channel->refresh()->verified_at))->toBeNull()
+        ->and(Cache::get("channel-code:{$channel->id}"))->toBe(hash('sha256', $code));
+
+    enterCode($channel, $code);
+
+    expect(Tenancy::run($this->organisation, fn () => $channel->refresh()->verified_at))->not->toBeNull()
+        ->and(Cache::has("channel-code:{$channel->id}"))->toBeFalse();
+});
+
+it('never sends reminders to a Telegram chat until its code is entered', function (): void {
+    $this->travelTo(Carbon::parse('2026-06-01 02:00', 'UTC'));
+    teamPlanFor($this->organisation);
+    Http::fake(['*' => Http::response(['ok' => true])]);
+    $channel = testChannel(telegramChannel());
+    Tenancy::run($this->organisation, fn () => Credential::factory()->dueIn(7)->create([
+        'application_id' => Application::factory()->create()->id, 'owner_id' => Person::factory()->create(['email' => 'siti@acme.test'])->id,
+    ]));
+    $isReminder = fn (Request $request): bool => str_contains((string) ($request->data()['text'] ?? ''), 'due for rotation');
+
+    $this->artisan('credentials:send-reminders')->assertSuccessful();
+    Http::assertNotSent($isReminder);
+
+    enterCode($channel, sentTelegramCode());
+    $this->travel(1)->hour();
+    $this->artisan('credentials:send-reminders')->assertSuccessful();
+    Http::assertSent(fn (Request $request): bool => $isReminder($request) && $request->data()['chat_id'] === TELEGRAM_CHAT);
+});
+
+it('locks the code after five wrong tries', function (): void {
+    teamPlanFor($this->organisation);
+    Http::fake(['*' => Http::response(['ok' => true])]);
+    $channel = telegramChannel();
+    testChannel($channel);
+    $code = sentTelegramCode();
+    $wrong = $code === '111111' ? '222222' : '111111';
+
+    foreach (range(1, 5) as $attempt) {
+        expect(fn (): NotificationChannel => enterCode($channel, $wrong))->toThrow(ValidationException::class, 'isn\'t right');
+    }
+
+    expect(fn (): NotificationChannel => enterCode($channel, $code))->toThrow(ValidationException::class, 'tried too often')
+        ->and(Tenancy::run($this->organisation, fn () => $channel->refresh()->verified_at))->toBeNull();
+});
+
+it('expires the code after 10 minutes', function (): void {
+    teamPlanFor($this->organisation);
+    Http::fake(['*' => Http::response(['ok' => true])]);
+    $channel = telegramChannel();
+    testChannel($channel);
+    $code = sentTelegramCode();
+
+    $this->travel(11)->minutes();
+
+    enterCode($channel, $code);
+})->throws(ValidationException::class, 'expired');
+
+it('sends at most three codes an hour', function (): void {
+    teamPlanFor($this->organisation);
+    Http::fake(['*' => Http::response(['ok' => true])]);
+    $channel = telegramChannel();
+
+    foreach (range(1, 3) as $attempt) {
+        testChannel($channel);
+    }
+
+    testChannel($channel);
+})->throws(ValidationException::class, 'Too many codes');
+
+it('never lets the bot token reach an error or the logs', function (): void {
+    $this->travelTo(Carbon::parse('2026-06-01 02:00', 'UTC'));
+    teamPlanFor($this->organisation);
+    Http::fake(['*' => Http::response(['ok' => true])]);
+    $channel = testChannel(telegramChannel());
+    enterCode($channel, sentTelegramCode());
+    Tenancy::run($this->organisation, fn () => Credential::factory()->dueIn(7)->create(['application_id' => Application::factory()->create()->id]));
+    $logged = [];
+    Event::listen(MessageLogged::class, function (MessageLogged $event) use (&$logged): void {
+        $logged[] = $event->message.' '.($event->context['exception'] ?? '');
+    });
+    Http::fake(fn (): never => throw new ConnectionException('cURL error 6: Could not resolve host for https://api.telegram.org/bot'.TELEGRAM_TOKEN.'/sendMessage'));
+
+    $error = rescue(fn (): NotificationChannel => testChannel($channel), fn (Throwable $exception): string => json_encode($exception->errors()), report: false);
+    $this->artisan('credentials:send-reminders')->assertSuccessful();
+
+    expect($error)->toContain('Couldn\'t reach Telegram')->not->toContain(TELEGRAM_TOKEN)
+        ->and($logged)->not->toBeEmpty()
+        ->and(implode("\n", $logged))->not->toContain(TELEGRAM_TOKEN)
+        ->and(implode("\n", $logged))->not->toContain('TEST-bot-token');
+});
+
+it('offers Telegram only once the bot is set up', function (): void {
+    teamPlanFor($this->organisation);
+    config(['services.telegram.bot_token' => null]);
+
+    addChannel(['type' => 'telegram', 'name' => 'Ops group', 'chat_id' => TELEGRAM_CHAT]);
+})->throws(ValidationException::class, 'isn\'t available');
+
+it('accepts only a Telegram chat id for a Telegram channel', function (array $data): void {
+    teamPlanFor($this->organisation);
+    config(['services.telegram.bot_token' => TELEGRAM_TOKEN]);
+
+    addChannel(['type' => 'telegram', 'name' => 'Ops group', ...$data]);
+})->with([
+    'a username' => [['chat_id' => '@acme_ops']],
+    'a link' => [['chat_id' => 'https://t.me/acme_ops']],
+    'too short' => [['chat_id' => '123']],
+    'a webhook URL instead' => [['chat_id' => TELEGRAM_CHAT, 'webhook_url' => SLACK_URL]],
+])->throws(ValidationException::class);
+
+it('sets up a Telegram chat from the channels page', function (): void {
+    teamPlanFor($this->organisation);
+    config(['services.telegram.bot_token' => TELEGRAM_TOKEN]);
+    Http::fake(['*' => Http::response(['ok' => true])]);
+    openOrganisationAs($this->owner, $this->organisation);
+
+    Livewire::test(CreateNotificationChannelPage::class)
+        ->fillForm(['type' => 'telegram'])
+        ->assertFormFieldHidden('webhook_url')
+        ->fillForm(['name' => 'Ops group', 'chat_id' => TELEGRAM_CHAT])
+        ->call('create')
+        ->assertHasNoFormErrors();
+    $channel = NotificationChannel::query()->sole();
+
+    Livewire::test(ListNotificationChannels::class)
+        ->callAction(TestAction::make('sendTest')->table($channel))
+        ->callAction(TestAction::make('verify')->table($channel), ['code' => sentTelegramCode()])
+        ->assertHasNoFormErrors();
+
+    expect($channel->refresh())->verified_at->not->toBeNull()->settings->toBe(['chat_id' => TELEGRAM_CHAT]);
+});
+
+it('hides Telegram from the channel types until the bot is set up', function (): void {
+    teamPlanFor($this->organisation);
+    config(['services.telegram.bot_token' => null]);
+    openOrganisationAs($this->owner, $this->organisation);
+
+    Livewire::test(CreateNotificationChannelPage::class)
+        ->fillForm(['type' => 'telegram', 'name' => 'Ops group', 'chat_id' => TELEGRAM_CHAT])
+        ->call('create')
+        ->assertHasFormErrors(['type']);
+});

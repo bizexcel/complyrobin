@@ -31,7 +31,7 @@ final readonly class UpdateNotificationChannel
         $validated = Validator::make($data, [
             'name' => ['required', 'string', 'max:100'],
             'is_enabled' => ['boolean'],
-            'webhook_url' => ['nullable', 'string', 'max:2048', new AllowedWebhookUrl($channel->type)],
+            'webhook_url' => $channel->type->usesWebhook() ? ['nullable', 'string', 'max:2048', new AllowedWebhookUrl($channel->type)] : ['prohibited'],
         ])->after(function ($validator) use ($channel, $data): void {
             $enabling = (bool) ($data['is_enabled'] ?? $channel->is_enabled) && ! $channel->is_enabled;
 

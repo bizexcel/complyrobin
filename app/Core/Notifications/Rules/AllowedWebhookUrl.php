@@ -34,6 +34,7 @@ final readonly class AllowedWebhookUrl implements ValidationRule
 
         return match ($type) {
             ChannelType::Slack => in_array($host, (array) config('services.chat_webhooks.slack_hosts'), true),
+            ChannelType::Telegram => false,
             ChannelType::Teams => array_any(
                 (array) config('services.chat_webhooks.teams_host_suffixes'),
                 fn (string $suffix): bool => str_ends_with($host, $suffix) && strlen($host) > strlen($suffix),
