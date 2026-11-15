@@ -17,11 +17,20 @@ cp .env.example .env
 composer install             # also publishes Filament assets
 php artisan key:generate
 php artisan migrate --database=pgsql_migrator
+php artisan db:seed --database=pgsql_migrator
 php artisan serve
 ```
 
 - **Customer panel:** http://localhost:8000/login
 - **Staff panel:** http://localhost:8000/admin. Your user needs `platform_role = admin`.
+
+## Deploying
+After migrating as the owner, seed the code-defined permissions (idempotent):
+
+```bash
+php artisan migrate --database=pgsql_migrator --force
+php artisan db:seed --class=PermissionSeeder --database=pgsql_migrator --force
+```
 
 ## Database roles
 `database/sql/roles.sql` is idempotent and is applied by the compose init script, by CI, and by deploys.

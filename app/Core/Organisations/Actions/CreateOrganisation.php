@@ -2,6 +2,9 @@
 
 namespace App\Core\Organisations\Actions;
 
+use App\Core\Access\Enums\Ability;
+use App\Core\Access\Enums\SystemRole;
+use App\Core\Access\Models\Role;
 use App\Core\Identity\Models\User;
 use App\Core\Organisations\Models\Organisation;
 use App\Core\Organisations\OrganisationSlugs;
@@ -15,8 +18,8 @@ final readonly class CreateOrganisation
     public function __construct(private OrganisationSlugs $slugs) {}
 
     /**
-     * Create a top-level organisation, named in URLs by a slug generated from its name, with its creator as the first
-     * member. If another sign-up takes the same slug at the same moment, a fresh slug is generated and the insert retried.
+     * Create a top-level organisation, named in URLs by a slug generated from its name, with the system roles and its
+     * creator as the first member and Owner. If another sign-up takes the same slug at the same moment, a fresh slug is generated and the insert retried.
      */
     public function handle(User $owner, string $name): Organisation
     {
@@ -30,7 +33,16 @@ final readonly class CreateOrganisation
                 when: fn (Throwable $exception): bool => $exception instanceof UniqueConstraintViolationException,
             );
 
-            Tenancy::run($organisation, fn () => $organisation->users()->attach($owner));
+            Tenancy::run($organisation, function () use ($organisation, $owner): void {
+                $organisation->users()->attach($owner);
+
+                foreach (SystemRole::cases() as $systemRole) {
+                    Role::create(['name' => $systemRole->value, 'guard_name' => 'web'])
+                        ->givePermissionTo(array_map(fn (Ability $ability): string => $ability->value, $systemRole->abilities()));
+                }
+
+                $owner->assignRole(SystemRole::Owner->value);
+            });
 
             return $organisation;
         });

@@ -38,14 +38,15 @@ it('returns 404 for an organisation the user does not belong to, as for one that
 it('redirects a member from an old slug to the current one', function (): void {
     $owner = User::factory()->create();
     $organisation = app(CreateOrganisation::class)->handle($owner, 'Acme');
-    Tenancy::run($organisation, fn () => app(RenameOrganisationSlug::class)->handle($organisation, 'acme-group'));
+    Tenancy::run($organisation, fn () => app(RenameOrganisationSlug::class)->handle($owner, $organisation, 'acme-group'));
 
     $this->actingAs($owner)->get('/acme')->assertRedirect('/acme-group');
 });
 
 it('does not reveal where an old slug moved to a non-member', function (): void {
-    $organisation = app(CreateOrganisation::class)->handle(User::factory()->create(), 'Acme');
-    Tenancy::run($organisation, fn () => app(RenameOrganisationSlug::class)->handle($organisation, 'acme-group'));
+    $owner = User::factory()->create();
+    $organisation = app(CreateOrganisation::class)->handle($owner, 'Acme');
+    Tenancy::run($organisation, fn () => app(RenameOrganisationSlug::class)->handle($owner, $organisation, 'acme-group'));
 
     $this->actingAs(User::factory()->create())->get('/acme')->assertNotFound();
 });

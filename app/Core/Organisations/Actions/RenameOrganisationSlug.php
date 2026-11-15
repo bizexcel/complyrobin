@@ -2,11 +2,15 @@
 
 namespace App\Core\Organisations\Actions;
 
+use App\Core\Access\Enums\Ability;
+use App\Core\Identity\Models\User;
 use App\Core\Organisations\Models\Organisation;
 use App\Core\Organisations\Rules\OrganisationSlug;
 use App\Core\Tenancy\Exceptions\TenantMismatch;
 use App\Core\Tenancy\Facades\Tenancy;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
@@ -18,13 +22,16 @@ final class RenameOrganisationSlug
      * Row-level security only lets the tenant role update the current organisation, so renaming any other one would
      * silently change nothing: refuse it instead.
      *
+     * @throws AuthorizationException
      * @throws ValidationException
      */
-    public function handle(Organisation $organisation, string $slug): Organisation
+    public function handle(User $actor, Organisation $organisation, string $slug): Organisation
     {
         if ($organisation->getKey() !== Tenancy::id()) {
             throw TenantMismatch::for(Organisation::class, $organisation->getKey(), Tenancy::id());
         }
+
+        Gate::forUser($actor)->authorize(Ability::UpdateOrganisation->value);
 
         Validator::make(['slug' => $slug], ['slug' => ['required', new OrganisationSlug($organisation)]])->validate();
 

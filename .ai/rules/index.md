@@ -4,6 +4,7 @@ Before planning or editing, find the row whose globs match the file's path and r
 
 | Applies to | Rule file |
 | --- | --- |
+| app/Core/Access/**, database/seeders/PermissionSeeder.php | .ai/rules/access.md |
 | app/**/Actions/** | .ai/rules/actions.md |
 | app/Billing/**, config/billing.php | .ai/rules/billing.md |
 | app/Filament/**, app/Providers/Filament/** | .ai/rules/filament.md |

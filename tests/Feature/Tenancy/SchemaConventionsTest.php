@@ -33,10 +33,12 @@ it('forces row-level security with a tenant policy on every tenant table', funct
     }
 });
 
-it('has a unique (organisation_id, id) index on every tenant table', function (): void {
+it('has a unique (organisation_id, id) index on every tenant table with an id', function (): void {
     $db = DB::connection('pgsql_migrator');
+    $withId = $db->table('information_schema.columns')->where('table_schema', 'public')->where('column_name', 'id')
+        ->pluck('table_name')->all();
 
-    foreach (tenantTables() as $table) {
+    foreach (array_intersect(tenantTables(), $withId) as $table) {
         $found = $db->scalar(<<<'SQL'
             select count(*) from pg_index i
             where i.indrelid = ?::regclass and i.indisunique

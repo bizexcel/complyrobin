@@ -2,6 +2,7 @@
 
 namespace App\Core\Identity\Models;
 
+use App\Core\Access\Concerns\HasOrganisationRoles;
 use App\Core\Identity\Enums\PlatformRole;
 use App\Core\Organisations\Models\Membership;
 use App\Core\Organisations\Models\Organisation;
@@ -29,7 +30,7 @@ use Illuminate\Notifications\Notifiable;
 class User extends Authenticatable implements FilamentUser, HasTenants
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, HasUuids, Notifiable;
+    use HasFactory, HasOrganisationRoles, HasUuids, Notifiable;
 
     /**
      * Get the attributes that should be cast.

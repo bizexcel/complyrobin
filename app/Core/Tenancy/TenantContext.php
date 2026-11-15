@@ -3,9 +3,11 @@
 namespace App\Core\Tenancy;
 
 use App\Core\Organisations\Models\Organisation;
+use App\Core\Tenancy\Events\TenantChanged;
 use App\Core\Tenancy\Exceptions\MissingTenantContext;
 use App\Core\Tenancy\Exceptions\TenancyBypassDenied;
 use Closure;
+use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\Connection;
 use Illuminate\Database\DatabaseManager;
 use Illuminate\Support\Facades\Log;
@@ -35,7 +37,7 @@ class TenantContext
 
     private ?Closure $bypassAllowed = null;
 
-    public function __construct(private readonly DatabaseManager $db) {}
+    public function __construct(private readonly DatabaseManager $db, private readonly Dispatcher $events) {}
 
     /**
      * Set the current organisation.
@@ -53,6 +55,8 @@ class TenantContext
         // Database first: if the statement fails, PHP keeps the previous tenant too.
         $this->write($id, $this->userId);
         $this->organisationId = $id;
+
+        $this->events->dispatch(new TenantChanged($id));
     }
 
     /**
@@ -80,6 +84,8 @@ class TenantContext
     {
         $this->write(null, $this->userId);
         $this->organisationId = null;
+
+        $this->events->dispatch(new TenantChanged(null));
     }
 
     /**

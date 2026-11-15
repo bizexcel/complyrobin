@@ -67,6 +67,15 @@ class TenancyServiceProvider extends ServiceProvider
                 $callback($blueprint);
             });
 
+            $this->tenantIsolation($table);
+        });
+
+        /*
+         * Force row-level security on an existing table with an organisation_id column, e.g. a pivot table that
+         * has no id of its own. Rows are visible and writable only while app.organisation_id matches.
+         */
+        Builder::macro('tenantIsolation', function (string $table): void {
+            /** @var Builder $this */
             $condition = "organisation_id = nullif(current_setting('app.organisation_id', true), '')::uuid";
             $connection = $this->getConnection();
 
