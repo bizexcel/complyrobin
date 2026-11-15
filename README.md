@@ -25,11 +25,12 @@ php artisan serve
 - **Staff panel:** http://localhost:8000/admin. Your user needs `platform_role = admin`.
 
 ## Deploying
-After migrating as the owner, seed the code-defined permissions (idempotent):
+After migrating as the owner, seed the code-defined permissions and vendor catalogue, then sync system roles (all idempotent):
 
 ```bash
 php artisan migrate --database=pgsql_migrator --force
 php artisan db:seed --class=PermissionSeeder --database=pgsql_migrator --force
+php artisan db:seed --class=VendorSeeder --database=pgsql_migrator --force
 php artisan access:sync-system-roles
 ```
 
