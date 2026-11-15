@@ -4,6 +4,7 @@ namespace App\Modules\Credentials\Actions;
 
 use App\Core\Entitlements\Entitlements;
 use App\Core\Entitlements\Enums\Feature;
+use App\Core\Files\PrivateDisk;
 use App\Core\Identity\Models\User;
 use App\Core\Tenancy\Facades\Tenancy;
 use App\Modules\Credentials\Jobs\ImportCredentials;
@@ -37,14 +38,9 @@ final readonly class StartCredentialImport
         $rows = count(CredentialSpreadsheet::rows($csv));
         $path = 'org/'.Tenancy::id().'/imports/'.Str::uuid7().'.csv';
 
-        Storage::disk(self::disk())->put($path, $csv);
+        Storage::disk(PrivateDisk::name())->put($path, $csv);
         ImportCredentials::dispatch($actor->getKey(), $path);
 
         return $rows;
-    }
-
-    public static function disk(): string
-    {
-        return (string) config('media-library.disk_name');
     }
 }

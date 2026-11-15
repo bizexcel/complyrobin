@@ -4,11 +4,11 @@ namespace App\Modules\Credentials\Jobs;
 
 use App\Core\Entitlements\Entitlements;
 use App\Core\Entitlements\Enums\Feature;
+use App\Core\Files\PrivateDisk;
 use App\Core\Identity\Models\User;
 use App\Core\Organisations\Models\Organisation;
 use App\Core\Tenancy\Facades\Tenancy;
 use App\Modules\Credentials\Actions\CreateCredential;
-use App\Modules\Credentials\Actions\StartCredentialImport;
 use App\Modules\Credentials\Notifications\CredentialsImported;
 use App\Modules\Credentials\Support\CredentialSpreadsheet;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -35,7 +35,7 @@ class ImportCredentials implements ShouldQueue
 
     public function handle(Entitlements $entitlements, CreateCredential $createCredential): void
     {
-        $disk = Storage::disk(StartCredentialImport::disk());
+        $disk = Storage::disk(PrivateDisk::name());
 
         try {
             $organisation = Organisation::query()->findOrFail(Tenancy::id());

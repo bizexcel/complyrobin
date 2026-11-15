@@ -8,6 +8,7 @@ Before planning or editing, find the row whose globs match the file's path and r
 | app/**/Actions/** | .ai/rules/actions.md |
 | app/Billing/**, config/billing.php | .ai/rules/billing.md |
 | app/Filament/**, app/Providers/Filament/** | .ai/rules/filament.md |
+| app/Core/Files/**, config/filesystems.php, config/media-library.php | .ai/rules/files.md |
 | routes/**, app/Http/** | .ai/rules/http-routing.md |
 | database/migrations/** | .ai/rules/migrations.md |
 | app/**/Models/** | .ai/rules/models.md |

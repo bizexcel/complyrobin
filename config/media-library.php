@@ -33,7 +33,9 @@ return [
      * The disk on which to store added files and derived images by default. Choose
      * one or more of the disks you've configured in config/filesystems.php.
      */
-    'disk_name' => env('MEDIA_DISK', 'local'), // private; production uses Laravel Object Storage (s3)
+    // Private. Empty means the default disk (on Laravel Cloud, the private bucket attached as default); resolved at
+    // runtime by App\Core\Files\PrivateDisk. Set MEDIA_DISK only to keep media on a separate, still private, bucket.
+    'disk_name' => env('MEDIA_DISK'),
 
     /*
      * The disk on which to store conversions (thumbnails, etc.) and responsive images

@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Core\Files\PrivateDisk;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -16,7 +17,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Laravel Cloud attaches its buckets after the config loads, so the private disk is settled here.
+        config(['media-library.disk_name' => PrivateDisk::name()]);
     }
 
     /**

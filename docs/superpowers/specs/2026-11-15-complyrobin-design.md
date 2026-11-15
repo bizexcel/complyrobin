@@ -113,7 +113,7 @@ Laravel 13 · Filament 5 · PHP 8.5 · Laravel Cloud · Postgres
 - **Database:** Serverless Postgres (Neon), production minimum CU set, point-in-time recovery 7–14 days.
   - The app uses the **direct** (non-pooler) host. Section 3 explains why.
 - **Cache and sessions:** Laravel Valkey for cache, sessions and locks.
-- **Files:** a private bucket on Laravel Object Storage, served only through temporary signed URLs.
+- **Files:** Laravel Object Storage buckets, whose visibility is set per bucket. A **private** bucket is the default disk for every private file (evidence, reports, imports), served only through temporary signed URLs. A **public** bucket named `public` is added when something public ships, and **extra buckets** under their own disk names when a feature needs them (decided 2026-11-15). Rule: `.ai/rules/files.md`.
 - **Queues:** managed queues for PDFs, imports/exports, notifications, reminders and webhooks.
 - **Scheduler:** reminders and recurring evaluations.
 - **Mail:** Resend, Postmark or SES, chosen at deploy.

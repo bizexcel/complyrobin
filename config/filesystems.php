@@ -28,6 +28,10 @@ return [
     |
     */
 
+    // On Laravel Cloud, each attached Object Storage bucket replaces the disk of the same name (bucket visibility is
+    // all-or-nothing): a private bucket as the default disk for every private file, a public bucket named "public"
+    // once something public ships, and further buckets under their own names when a feature needs them. Never set a
+    // per-file visibility. See .ai/rules/files.md.
     'disks' => [
 
         'local' => [
