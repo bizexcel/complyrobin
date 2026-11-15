@@ -21,7 +21,13 @@ paths:
 In the customer panel, Filament identifies the organisation from the slug and checks membership (404 otherwise), then the persistent tenant middleware `App\Filament\App\Tenancy\SetCurrentOrganisation` wraps the request in `Tenancy::run()`. Don't set the tenant from controllers or components.
 
 ## Jobs and schedules carry the tenant
-Queued jobs restore the tenant from Laravel `Context`. Scheduled work loops over organisations and runs each inside `Tenancy::run()`.
+`Tenancy::set()` puts the organisation in Laravel's hidden `Context`, so every job dispatched inside an organisation runs as it on the worker, and it is cleared after each job. Dispatch as a statement (`Job::dispatch();`), not as an arrow function's return value: a `PendingDispatch` only dispatches when it is destroyed, by which time `Tenancy::run()` may have ended. Scheduled work uses `Tenancy::each(fn (Organisation $organisation) => …)`, which runs the callback inside each organisation in turn.
+
+## Models never pin a connection
+Every app model uses `UsesTenancyConnection` (tenant models get it through `BelongsToOrganisation`), so the connection follows `Tenancy`: the tenant role normally, the platform role inside `Tenancy::bypass()`. Never use `Model::on()` or `setConnection()` to reach other organisations. Enforced by `ArchTest`.
+
+## Organisations change only from inside or from the platform
+Row-level security would silently ignore a change to another organisation, so `Organisation` refuses updates from outside it, and refuses deletes except inside `Tenancy::bypass()`. Audit entries written during a bypass go to the trail of the organisation the record belongs to.
 
 ## Tests prove isolation
 Any change here keeps `tests/Feature/Tenancy` green; add a case for every new way data can cross tenants.

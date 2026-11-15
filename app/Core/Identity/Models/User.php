@@ -6,6 +6,7 @@ use App\Core\Access\Concerns\HasOrganisationRoles;
 use App\Core\Identity\Enums\PlatformRole;
 use App\Core\Organisations\Models\Membership;
 use App\Core\Organisations\Models\Organisation;
+use App\Core\Tenancy\Concerns\UsesTenancyConnection;
 use Database\Factories\UserFactory;
 use Filament\Auth\MultiFactor\App\Concerns\InteractsWithAppAuthentication;
 use Filament\Auth\MultiFactor\App\Concerns\InteractsWithAppAuthenticationRecovery;
@@ -37,7 +38,7 @@ use Illuminate\Notifications\Notifiable;
 class User extends Authenticatable implements FilamentUser, HasAppAuthentication, HasAppAuthenticationRecovery, HasEmailAuthentication, HasTenants, MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, HasOrganisationRoles, HasUuids, InteractsWithAppAuthentication, InteractsWithAppAuthenticationRecovery, InteractsWithEmailAuthentication, Notifiable;
+    use HasFactory, HasOrganisationRoles, HasUuids, InteractsWithAppAuthentication, InteractsWithAppAuthenticationRecovery, InteractsWithEmailAuthentication, Notifiable, UsesTenancyConnection;
 
     /**
      * Get the attributes that should be cast.

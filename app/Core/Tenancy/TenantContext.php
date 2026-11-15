@@ -10,6 +10,7 @@ use Closure;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\Connection;
 use Illuminate\Database\DatabaseManager;
+use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
@@ -28,6 +29,9 @@ class TenantContext
 
     /** The connection that runs as the RLS-bypassing platform role. */
     public const string PLATFORM_CONNECTION = 'pgsql_platform';
+
+    /** Where the organisation travels in Laravel's (hidden) Context, and so into every queued job. */
+    public const string CONTEXT_KEY = 'tenancy.organisation_id';
 
     private ?string $organisationId = null;
 
@@ -55,6 +59,7 @@ class TenantContext
         // Database first: if the statement fails, PHP keeps the previous tenant too.
         $this->write($id, $this->userId);
         $this->organisationId = $id;
+        Context::addHidden(self::CONTEXT_KEY, $id);
 
         $this->events->dispatch(new TenantChanged($id));
     }
@@ -84,6 +89,7 @@ class TenantContext
     {
         $this->write(null, $this->userId);
         $this->organisationId = null;
+        Context::forgetHidden(self::CONTEXT_KEY);
 
         $this->events->dispatch(new TenantChanged(null));
     }
@@ -137,6 +143,18 @@ class TenantContext
             $this->bypassing = $previousBypassing;
             $this->db->setDefaultConnection($previousConnection);
             $previous === null ? $this->forget() : $this->set($previous);
+        }
+    }
+
+    /**
+     * Run the callback inside each organisation in turn, e.g. for scheduled work. Deleted organisations are skipped.
+     *
+     * @param  Closure(Organisation): void  $callback
+     */
+    public function each(Closure $callback): void
+    {
+        foreach (Organisation::query()->lazyById(500) as $organisation) {
+            $this->run($organisation, fn () => $callback($organisation));
         }
     }
 

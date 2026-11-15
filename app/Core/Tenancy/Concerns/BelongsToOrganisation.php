@@ -18,6 +18,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 trait BelongsToOrganisation
 {
+    use UsesTenancyConnection;
+
     public static function bootBelongsToOrganisation(): void
     {
         static::addGlobalScope(new OrganisationScope);

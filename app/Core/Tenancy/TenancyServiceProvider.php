@@ -10,6 +10,11 @@ use Illuminate\Database\Events\TransactionRolledBack;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Schema\Builder;
 use Illuminate\Database\Schema\ForeignKeyDefinition;
+use Illuminate\Log\Context\Repository;
+use Illuminate\Queue\Events\JobExceptionOccurred;
+use Illuminate\Queue\Events\JobFailed;
+use Illuminate\Queue\Events\JobProcessed;
+use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 
@@ -36,6 +41,21 @@ class TenancyServiceProvider extends ServiceProvider
         Event::listen(function (TransactionRolledBack $event): void {
             if ($event->connectionName === TenantContext::CONNECTION) {
                 $this->app->make(TenantContext::class)->applyTo($event->connection);
+            }
+        });
+
+        // Queued jobs run as the organisation they were dispatched in, and nothing carries over to the next job.
+        Context::hydrated(function (Repository $context): void {
+            if ($context->hasHidden(TenantContext::CONTEXT_KEY)) {
+                $this->app->make(TenantContext::class)->set((string) $context->getHidden(TenantContext::CONTEXT_KEY));
+            }
+        });
+
+        Event::listen([JobProcessed::class, JobFailed::class, JobExceptionOccurred::class], function (): void {
+            $context = $this->app->make(TenantContext::class);
+
+            if ($context->check()) {
+                $context->forget();
             }
         });
 

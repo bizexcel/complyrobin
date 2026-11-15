@@ -2,6 +2,7 @@
 
 namespace App\Core\Access\Models;
 
+use App\Core\Tenancy\Concerns\UsesTenancyConnection;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Spatie\Permission\Models\Permission as SpatiePermission;
@@ -12,5 +13,5 @@ use Spatie\Permission\Models\Permission as SpatiePermission;
 #[Fillable(['name', 'guard_name'])]
 class Permission extends SpatiePermission
 {
-    use HasUuids;
+    use HasUuids, UsesTenancyConnection;
 }

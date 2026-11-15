@@ -3,6 +3,7 @@
 namespace App\Core\Identity\Models;
 
 use App\Core\Identity\Enums\LoginAttemptStatus;
+use App\Core\Tenancy\Concerns\UsesTenancyConnection;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
@@ -15,7 +16,7 @@ use Illuminate\Database\Eloquent\Model;
 #[Fillable(['user_id', 'email', 'ip_address', 'user_agent', 'status'])]
 class LoginAttempt extends Model
 {
-    use HasUuids;
+    use HasUuids, UsesTenancyConnection;
 
     public const null UPDATED_AT = null;
 

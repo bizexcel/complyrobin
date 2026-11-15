@@ -2,6 +2,7 @@
 
 use App\Core\Organisations\Models\Organisation;
 use App\Core\People\Models\Department;
+use App\Core\Tenancy\Exceptions\TenantMismatch;
 use App\Core\Tenancy\Facades\Tenancy;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
@@ -33,3 +34,18 @@ it('rejects a query-builder insert for another organisation', function (): void 
         'name' => 'Smuggled',
     ]);
 })->throws(QueryException::class, 'row-level security');
+
+it('refuses to change or delete an organisation from outside it instead of silently doing nothing', function (Closure $change): void {
+    [$acme, $globex] = Organisation::factory()->count(2)->create();
+
+    Tenancy::run($acme, fn () => $change($globex));
+})->with([
+    'rename another organisation' => fn (Organisation $other) => $other->update(['name' => 'Hijacked']),
+    'delete another organisation' => fn (Organisation $other) => $other->delete(),
+])->throws(TenantMismatch::class);
+
+it('refuses to delete even the current organisation outside a platform bypass', function (): void {
+    $acme = Organisation::factory()->create();
+
+    Tenancy::run($acme, fn () => $acme->delete());
+})->throws(TenantMismatch::class);

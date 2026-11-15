@@ -84,3 +84,12 @@ it('prunes entries older than the retention period, and only those', function ()
     expect(DB::connection('pgsql_platform')->table('activities')->count())->toBe($before - 1)
         ->and(DB::connection('pgsql_platform')->table('activities')->where('id', $oldest)->exists())->toBeFalse();
 });
+
+it('puts a change platform staff make on the trail of the organisation it concerns', function (): void {
+    Tenancy::bypass('test: staff rename', fn () => $this->organisation->update(['name' => 'Acme Group']));
+
+    $entry = Tenancy::run($this->organisation, fn () => Activity::query()
+        ->where('subject_type', $this->organisation->getMorphClass())->sole());
+
+    expect($entry->attribute_changes['attributes']['name'])->toBe('Acme Group');
+});

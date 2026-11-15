@@ -1,6 +1,7 @@
 <?php
 
 use App\Core\Organisations\Models\Organisation;
+use App\Core\Tenancy\Exceptions\TenantMismatch;
 use App\Core\Tenancy\Facades\Tenancy;
 use Illuminate\Support\Facades\DB;
 
@@ -58,4 +59,15 @@ it('re-applies the setting after reconnect', function (): void {
     DB::reconnect('pgsql');
 
     expect(currentSetting())->toBe($a->id);
+});
+
+it('writes a model loaded as the tenant through the platform role inside a bypass, and back', function (): void {
+    [$acme, $globex] = Organisation::factory()->count(2)->create();
+    $loadedAsTenant = Organisation::query()->findOrFail($globex->id);
+    $loadedInBypass = Tenancy::bypass('test: load', fn () => Organisation::query()->findOrFail($globex->id));
+
+    Tenancy::bypass('test: rename', fn () => $loadedAsTenant->update(['name' => 'Renamed by staff']));
+
+    expect(DB::connection('pgsql_migrator')->table('organisations')->where('id', $globex->id)->value('name'))->toBe('Renamed by staff')
+        ->and(fn () => Tenancy::run($acme, fn () => $loadedInBypass->update(['name' => 'Hijacked'])))->toThrow(TenantMismatch::class);
 });

@@ -3,6 +3,7 @@
 use App\Core\Identity\Models\User;
 use App\Core\Organisations\Actions\CreateOrganisation;
 use App\Core\Organisations\Models\Organisation;
+use App\Core\Tenancy\Facades\Tenancy;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -23,7 +24,10 @@ it('numbers the slug when another organisation holds it', function (Closure $tak
 })->with([
     'as its slug' => fn () => Organisation::factory()->create(['slug' => 'acme']),
     'as a previous slug' => fn () => Organisation::factory()->create(['previous_slugs' => ['acme']]),
-    'while deleted' => fn () => Organisation::factory()->create(['slug' => 'acme'])->delete(),
+    'while deleted' => function (): void {
+        $organisation = Organisation::factory()->create(['slug' => 'acme']);
+        Tenancy::bypass('test: delete an organisation', fn () => $organisation->delete());
+    },
 ]);
 
 it('never generates a reserved slug', function (): void {

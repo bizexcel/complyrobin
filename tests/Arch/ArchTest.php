@@ -36,6 +36,15 @@ it('audits every tenant model except the audit entries themselves', function ():
     }
 });
 
+it('lets tenancy choose every model\'s connection, never the connection it was loaded on', function (): void {
+    foreach (appModels() as $model) {
+        $instance = new $model;
+        $instance->setConnection('pgsql_platform');
+
+        expect($instance->getConnectionName())->toBeNull("{$model} must use UsesTenancyConnection");
+    }
+});
+
 it('gives every Eloquent model a uuid key', function (): void {
     $models = appModels();
 
