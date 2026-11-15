@@ -22,6 +22,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  *
  * @property string $slug
  * @property string $timezone
+ * @property array<string, mixed>|null $settings
+ * @property string|null $root_id
  * @property list<string> $previous_slugs slugs it used before; they redirect here and nobody else may take them
  */
 #[Fillable(['name', 'slug', 'timezone', 'parent_id', 'root_id', 'settings'])]

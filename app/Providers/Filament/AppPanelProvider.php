@@ -3,6 +3,7 @@
 namespace App\Providers\Filament;
 
 use App\Core\Organisations\Models\Organisation;
+use App\Filament\App\Pages\OrganisationSettings;
 use App\Filament\App\Pages\RegisterOrganisation;
 use App\Filament\App\Tenancy\ResolveOrganisation;
 use App\Filament\App\Tenancy\SetCurrentOrganisation;
@@ -42,6 +43,7 @@ class AppPanelProvider extends PanelProvider
             ->tenant(Organisation::class, slugAttribute: 'slug')
             ->resolveTenantUsing(fn (string $key): Organisation => app(ResolveOrganisation::class)($key))
             ->tenantRegistration(RegisterOrganisation::class)
+            ->tenantProfile(OrganisationSettings::class)
             ->tenantMiddleware([SetCurrentOrganisation::class], isPersistent: true)
             ->colors([
                 'primary' => Color::Indigo,
