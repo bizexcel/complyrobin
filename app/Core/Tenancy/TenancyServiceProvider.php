@@ -1,0 +1,78 @@
+<?php
+
+namespace App\Core\Tenancy;
+
+use Closure;
+use Illuminate\Database\Events\ConnectionEstablished;
+use Illuminate\Database\Events\TransactionRolledBack;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Schema\ForeignKeyDefinition;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\ServiceProvider;
+
+class TenancyServiceProvider extends ServiceProvider
+{
+    public function register(): void
+    {
+        $this->app->singleton(TenantContext::class);
+    }
+
+    public function boot(): void
+    {
+        // A new or re-established tenant connection starts with an empty session: re-apply the tenant.
+        Event::listen(function (ConnectionEstablished $event): void {
+            $context = $this->app->make(TenantContext::class);
+
+            if ($event->connectionName === TenantContext::CONNECTION && $context->check()) {
+                $context->applyTo($event->connection);
+            }
+        });
+
+        // set_config() is transactional: a rollback (or rollback to savepoint) undoes it. Re-apply the
+        // tenant PHP holds so the database and PHP never disagree.
+        Event::listen(function (TransactionRolledBack $event): void {
+            if ($event->connectionName === TenantContext::CONNECTION) {
+                $this->app->make(TenantContext::class)->applyTo($event->connection);
+            }
+        });
+
+        $this->registerSchemaMacros();
+    }
+
+    private function registerSchemaMacros(): void
+    {
+        /*
+         * Create a tenant table: uuid id, organisation_id, unique (organisation_id, id) for composite
+         * foreign keys, and a forced row-level security policy keyed on app.organisation_id.
+         */
+        Builder::macro('tenantTable', function (string $table, Closure $callback): void {
+            /** @var Builder $this */
+            $this->create($table, function (Blueprint $blueprint) use ($callback): void {
+                $blueprint->uuid('id')->primary();
+                $blueprint->foreignUuid('organisation_id')->constrained('organisations')->cascadeOnDelete();
+                $blueprint->unique(['organisation_id', 'id']);
+
+                $callback($blueprint);
+            });
+
+            $condition = "organisation_id = nullif(current_setting('app.organisation_id', true), '')::uuid";
+            $connection = $this->getConnection();
+
+            $connection->statement("alter table \"{$table}\" enable row level security");
+            $connection->statement("alter table \"{$table}\" force row level security");
+            $connection->statement("create policy \"{$table}_tenant_isolation\" on \"{$table}\" using ({$condition}) with check ({$condition})");
+        });
+
+        /*
+         * Composite foreign key to another tenant table, so the database rejects cross-tenant links.
+         */
+        Blueprint::macro('tenantForeign', function (string $column, string $on, string $onDelete = 'restrict'): ForeignKeyDefinition {
+            /** @var Blueprint $this */
+            return $this->foreign(['organisation_id', $column])
+                ->references(['organisation_id', 'id'])
+                ->on($on)
+                ->onDelete($onDelete);
+        });
+    }
+}
