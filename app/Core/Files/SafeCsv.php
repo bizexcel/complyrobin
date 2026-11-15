@@ -22,17 +22,28 @@ final class SafeCsv
             throw new RuntimeException('Could not open a temporary stream for the CSV.');
         }
 
-        fputcsv($handle, array_map(self::cell(...), $header), escape: '');
-
-        foreach ($rows as $row) {
-            fputcsv($handle, array_map(self::cell(...), $row), escape: '');
-        }
-
+        self::write($handle, $header, $rows);
         rewind($handle);
         $csv = (string) stream_get_contents($handle);
         fclose($handle);
 
         return $csv;
+    }
+
+    /**
+     * Write the CSV to an open stream, row by row, e.g. php://output for a download.
+     *
+     * @param  resource  $handle
+     * @param  list<string>  $header
+     * @param  iterable<list<string|int|float|bool|null>>  $rows
+     */
+    public static function write($handle, array $header, iterable $rows): void
+    {
+        fputcsv($handle, array_map(self::cell(...), $header), escape: '');
+
+        foreach ($rows as $row) {
+            fputcsv($handle, array_map(self::cell(...), $row), escape: '');
+        }
     }
 
     public static function cell(string|int|float|bool|null $value): string

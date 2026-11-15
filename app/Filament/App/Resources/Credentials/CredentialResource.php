@@ -6,6 +6,7 @@ use App\Filament\App\Resources\Credentials\Pages\CreateCredential;
 use App\Filament\App\Resources\Credentials\Pages\EditCredential;
 use App\Filament\App\Resources\Credentials\Pages\ListCredentials;
 use App\Filament\App\Resources\Credentials\Pages\ViewCredential;
+use App\Filament\App\Resources\Credentials\RelationManagers\HistoryRelationManager;
 use App\Filament\App\Resources\Credentials\RelationManagers\RotationsRelationManager;
 use App\Filament\App\Resources\Credentials\Schemas\CredentialForm;
 use App\Filament\App\Resources\Credentials\Schemas\CredentialInfolist;
@@ -54,6 +55,7 @@ class CredentialResource extends Resource
     {
         return [
             RotationsRelationManager::class,
+            HistoryRelationManager::class,
         ];
     }
 
