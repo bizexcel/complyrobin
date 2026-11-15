@@ -40,7 +40,7 @@ final readonly class ClaimDueReminders
         $furthestBehind = ($policy->overdue === [] ? 0 : max($policy->overdue)) + 7 * $policy->repeatWeeklyForWeeks + 1;
 
         $credentials = Credential::query()->active()
-            ->with('owner.user')
+            ->with(['owner.user', 'backupOwner.user'])
             ->whereBetween('next_rotation_at', [$now->copy()->subDays($furthestBehind), $now->copy()->addDays($furthestAhead)])
             ->get();
 
@@ -53,7 +53,7 @@ final readonly class ClaimDueReminders
                 continue;
             }
 
-            foreach ($this->recipients->for($credential) as $recipient) {
+            foreach ($this->recipients->for($credential, $step) as $recipient) {
                 $id = DB::scalar(<<<'SQL'
                     insert into reminders (id, organisation_id, credential_id, person_id, user_id, kind, audience, offset_days, due_at, created_at)
                     values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
