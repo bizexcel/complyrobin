@@ -15,6 +15,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
 
 /**
  * A tenant. Sub-organisations point at their parent; billing resolves through root_id.
@@ -28,10 +30,10 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  */
 #[Fillable(['name', 'slug', 'timezone', 'parent_id', 'root_id', 'settings'])]
 #[UseFactory(OrganisationFactory::class)]
-class Organisation extends Model
+class Organisation extends Model implements HasMedia
 {
     /** @use HasFactory<OrganisationFactory> */
-    use HasFactory, HasUuids, LogsTenantActivity, SoftDeletes, UsesTenancyConnection;
+    use HasFactory, HasUuids, InteractsWithMedia, LogsTenantActivity, SoftDeletes, UsesTenancyConnection;
 
     /**
      * Only changes are audited: an organisation is created before it has an audit trail to write to.
@@ -74,6 +76,14 @@ class Organisation extends Model
     public function users(): BelongsToMany
     {
         return $this->belongsToMany(User::class)->using(Membership::class)->withTimestamps();
+    }
+
+    /**
+     * The organisation's own generated files, such as rotation evidence reports. Stored under its folder like any file.
+     */
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection('rotation-evidence')->acceptsMimeTypes(['application/pdf', 'text/csv', 'text/plain']);
     }
 
     /**

@@ -22,6 +22,7 @@ use Spatie\MediaLibrary\InteractsWithMedia;
  * @property Carbon $rotated_at
  * @property Carbon $due_at
  * @property string|null $notes
+ * @property Carbon|null $created_at when it was recorded
  */
 #[Fillable(['credential_id', 'rotated_by_id', 'rotated_at', 'due_at', 'notes'])]
 class CredentialRotation extends Model implements HasMedia
