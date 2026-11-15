@@ -23,6 +23,15 @@ final class RotationSchedule
         return (int) $today->diffInDays($dueDay, false);
     }
 
+    /**
+     * Midnight starting the organisation's day, some days from today, as a UTC instant. Compare stored timestamps with
+     * this, never with a local-time Carbon: query bindings drop the time zone, so local midnight would be read as UTC.
+     */
+    public static function startOfDay(CarbonInterface $now, string $timezone, int $daysFromToday = 0): CarbonImmutable
+    {
+        return CarbonImmutable::instance($now)->setTimezone($timezone)->startOfDay()->addDays($daysFromToday)->utc();
+    }
+
     public static function status(
         ?CarbonInterface $dueAt,
         ?CarbonInterface $expiresAt,

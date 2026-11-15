@@ -8,7 +8,7 @@ use App\Modules\Credentials\Actions\DeleteCredential;
 use App\Modules\Credentials\Enums\CredentialStatus;
 use App\Modules\Credentials\Enums\Environment;
 use App\Modules\Credentials\Models\Credential;
-use Carbon\CarbonImmutable;
+use App\Modules\Credentials\Support\RotationSchedule;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
@@ -62,8 +62,8 @@ class CredentialsTable
      */
     private static function whereStatus(Builder $query, ?string $status): Builder
     {
-        $startOfToday = CarbonImmutable::now(CredentialPresenter::timezone())->startOfDay();
-        $dueSoonEnd = $startOfToday->addDays((int) config('credentials.due_soon_days') + 1);
+        $startOfToday = RotationSchedule::startOfDay(now(), CredentialPresenter::timezone());
+        $dueSoonEnd = RotationSchedule::startOfDay(now(), CredentialPresenter::timezone(), (int) config('credentials.due_soon_days') + 1);
 
         return match ($status) {
             CredentialStatus::Overdue->value => $query->active()->where('next_rotation_at', '<', $startOfToday),

@@ -17,5 +17,8 @@ Cast enums to backed PHP enums and annotate enum-cast properties with `@property
 ## Every tenant model is audited
 Tenant models also use `App\Core\Audit\Concerns\LogsTenantActivity`, which writes each create, update and delete (who, and each attribute's old and new value) to the organisation's `activities` trail. Hidden and `encrypted` attributes are never written, so mark secrets one or the other. The trail is append-only for the app; `audit:prune` (scheduled daily) removes entries after `activitylog.clean_after_days` (730). Enforced by `ArchTest`. A model that is itself a log (the `reminders` send log) keeps the trait but sets `protected static array $recordEvents = [];` so it doesn't double every write.
 
+## Dates in queries are UTC instants
+Timestamps are `timestamptz`, but query bindings format a Carbon as `Y-m-d H:i:s` and drop its time zone, so a local-time Carbon is read as UTC. Work out organisation-local day boundaries with `RotationSchedule::startOfDay($now, $timezone, $days)`, which returns a UTC instant, and compare against that (as the credential list's status filters and `RegisterStatistics` do).
+
 ## No business logic
 Models hold relations, casts and small accessors. Rules and writes with meaning live in `Actions`.

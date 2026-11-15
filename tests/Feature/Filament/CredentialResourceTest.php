@@ -9,6 +9,7 @@ use App\Filament\App\Resources\Credentials\Pages\ListCredentials;
 use App\Filament\App\Resources\Credentials\Pages\ViewCredential;
 use App\Modules\Credentials\Models\Application;
 use App\Modules\Credentials\Models\Credential;
+use Illuminate\Support\Carbon;
 use Livewire\Livewire;
 
 beforeEach(function (): void {
@@ -41,6 +42,26 @@ it('filters overdue credentials', function (): void {
         ->filterTable('status', 'overdue')
         ->assertCanSeeTableRecords([$overdue])
         ->assertCanNotSeeTableRecords([$fine]);
+});
+
+it('filters on the organisation\'s own days, not UTC ones', function (): void {
+    // 20:00 UTC on 1 June is 04:00 on 2 June in Kuala Lumpur.
+    $this->travelTo(Carbon::parse('2026-06-01 20:00', 'UTC'));
+    $dueAt = fn (string $utc): array => ['application_id' => $this->application->id, 'rotation_days' => 30, 'expires_at' => null,
+        'last_rotated_at' => Carbon::parse($utc, 'UTC')->subDays(30)];
+    [$overdueInKualaLumpur, $dueTodayInKualaLumpur] = Tenancy::run($this->organisation, fn (): array => [
+        Credential::factory()->create($dueAt('2026-06-01 15:00')),
+        Credential::factory()->create($dueAt('2026-06-01 17:00')),
+    ]);
+    openOrganisationAs($this->owner, $this->organisation);
+
+    Livewire::test(ListCredentials::class)
+        ->filterTable('status', 'overdue')
+        ->assertCanSeeTableRecords([$overdueInKualaLumpur])
+        ->assertCanNotSeeTableRecords([$dueTodayInKualaLumpur])
+        ->filterTable('status', 'due_soon')
+        ->assertCanSeeTableRecords([$dueTodayInKualaLumpur])
+        ->assertCanNotSeeTableRecords([$overdueInKualaLumpur]);
 });
 
 it('adds a credential from the form', function (): void {
