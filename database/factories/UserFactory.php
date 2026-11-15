@@ -30,7 +30,16 @@ class UserFactory extends Factory
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
+            'has_email_authentication' => true,
         ];
+    }
+
+    /**
+     * A user who hasn't set up multi-factor authentication yet (both panels require it).
+     */
+    public function withoutMultiFactorAuthentication(): static
+    {
+        return $this->state(fn (array $attributes): array => ['has_email_authentication' => false]);
     }
 
     /**

@@ -7,6 +7,12 @@ use App\Core\Identity\Enums\PlatformRole;
 use App\Core\Organisations\Models\Membership;
 use App\Core\Organisations\Models\Organisation;
 use Database\Factories\UserFactory;
+use Filament\Auth\MultiFactor\App\Concerns\InteractsWithAppAuthentication;
+use Filament\Auth\MultiFactor\App\Concerns\InteractsWithAppAuthenticationRecovery;
+use Filament\Auth\MultiFactor\App\Contracts\HasAppAuthentication;
+use Filament\Auth\MultiFactor\App\Contracts\HasAppAuthenticationRecovery;
+use Filament\Auth\MultiFactor\Email\Concerns\InteractsWithEmailAuthentication;
+use Filament\Auth\MultiFactor\Email\Contracts\HasEmailAuthentication;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Models\Contracts\HasTenants;
 use Filament\Panel;
@@ -28,10 +34,10 @@ use Illuminate\Notifications\Notifiable;
 #[Fillable(['name', 'email', 'password'])]
 #[Hidden(['password', 'remember_token'])]
 #[UseFactory(UserFactory::class)]
-class User extends Authenticatable implements FilamentUser, HasTenants, MustVerifyEmail
+class User extends Authenticatable implements FilamentUser, HasAppAuthentication, HasAppAuthenticationRecovery, HasEmailAuthentication, HasTenants, MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, HasOrganisationRoles, HasUuids, Notifiable;
+    use HasFactory, HasOrganisationRoles, HasUuids, InteractsWithAppAuthentication, InteractsWithAppAuthenticationRecovery, InteractsWithEmailAuthentication, Notifiable;
 
     /**
      * Get the attributes that should be cast.

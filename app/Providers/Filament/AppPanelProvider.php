@@ -6,6 +6,8 @@ use App\Core\Organisations\Models\Organisation;
 use App\Filament\App\Pages\RegisterOrganisation;
 use App\Filament\App\Tenancy\ResolveOrganisation;
 use App\Filament\App\Tenancy\SetCurrentOrganisation;
+use Filament\Auth\MultiFactor\App\AppAuthentication;
+use Filament\Auth\MultiFactor\Email\EmailAuthentication;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -31,6 +33,7 @@ class AppPanelProvider extends PanelProvider
             ->id('app')
             ->path('')
             ->login()
+            ->multiFactorAuthentication([AppAuthentication::make()->recoverable(), EmailAuthentication::make()], isRequired: true)
             ->registration()
             ->passwordReset()
             ->emailVerification()

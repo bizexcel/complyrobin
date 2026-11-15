@@ -12,6 +12,7 @@ final class ReservedSlugs
         'admin', 'api', 'app', 'www', 'login', 'logout', 'register', 'billing', 'settings', 'livewire', 'filament',
         'storage', 'up', 'health', 'airwallex', 'two-factor', 'password', 'email', 'invitations', 'docs', 'help',
         'support', 'status', 'new', 'password-reset', 'email-verification',
+        'multi-factor-authentication', 'email-change-verification', 'profile',
     ];
 
     /**

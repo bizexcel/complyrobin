@@ -17,3 +17,6 @@ The team is the organisation and follows `Tenancy` automatically (the `TenantCha
 
 ## Invitations
 Members join through `InviteMember` (needs `members.manage`; only an Owner invites an Owner; one open invitation per email, re-inviting replaces it) and `AcceptInvitation`. The emailed link carries the organisation's slug and a random token; only its sha-256 is stored. A link is accepted only by a signed-in user whose **verified** email is the invited one, so signing up with someone else's address gets nothing.
+
+## Signing in
+Both panels require multi-factor authentication (Filament's authenticator app with recovery codes, or an email code): a user without it is sent to set it up first. `login_attempts` records every sign-in and failed sign-in from Laravel's `Login`/`Failed` events; the tenant role may insert into it but never read it.
