@@ -11,6 +11,7 @@ use App\Core\Identity\Models\User;
 use App\Core\Organisations\Models\Invitation;
 use App\Core\Organisations\Models\Organisation;
 use App\Core\Organisations\Notifications\InvitationNotification;
+use App\Core\Organisations\Seats;
 use App\Core\Tenancy\Facades\Tenancy;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
@@ -52,7 +53,7 @@ final readonly class InviteMember
 
             if ($organisation->users()->whereRaw('lower(email) = ?', [$email])->exists()) {
                 $validator->errors()->add('email', 'This person is already a member.');
-            } elseif (($limit = $this->entitlements->limit(Limit::Members)) !== null && $this->seatsTaken($organisation, $email) >= $limit) {
+            } elseif (($limit = $this->entitlements->limit(Limit::Members)) !== null && Seats::taken($organisation, exceptInvitationTo: $email) >= $limit) {
                 $validator->errors()->add('email', "Your plan allows {$limit} members, counting open invitations. Upgrade to invite more.");
             }
         })->validate();
@@ -75,19 +76,5 @@ final readonly class InviteMember
         ));
 
         return $invitation;
-    }
-
-    /**
-     * Members plus open invitations, not counting an open invitation to this email (inviting again replaces it).
-     */
-    private function seatsTaken(Organisation $organisation, string $email): int
-    {
-        $openInvitations = Invitation::query()
-            ->whereNull('accepted_at')
-            ->where('expires_at', '>', now())
-            ->where('email', '!=', $email)
-            ->count();
-
-        return $organisation->users()->count() + $openInvitations;
     }
 }

@@ -15,5 +15,7 @@ Use it whenever you add data that belongs to one organisation.
 4. **Reference number** if users talk about it — via the `Numbering` service.
 5. **Policy** and **Actions** for every write.
 6. **Filament resource** under `app/Filament/App` calling the actions, with scoped validation.
-7. **Tests** — feature tests for the actions and resource; cross-tenant read/write cases. `SchemaConventionsTest` checks RLS, the unique key and the trait automatically.
-8. Run `composer dump-autoload && composer test && composer analyse && composer lint`.
+7. **Tests** — feature tests for the actions and resource; cross-tenant read/write cases. `SchemaConventionsTest` checks RLS, the unique key and the trait automatically. Add a row to `populatedOrganisation()` in `tests/Pest.php` (through the Action) so `IsolationSuiteTest` and `OrganisationDeletionTest` cover the new table. Test helpers are global functions: give them names no other test file uses.
+8. **Dates** — compare stored timestamps with UTC instants (`RotationSchedule::startOfDay()` for an organisation's day), never a local-time Carbon (see `models.md`).
+9. **Exports and secrets** — a CSV people download goes through `SafeCsv`; anything secret is `#[Hidden]` or `encrypted`, never shown back in a form, and kept out of URLs and error messages.
+10. Run `composer dump-autoload && composer test && composer analyse && composer lint && composer refactor`.

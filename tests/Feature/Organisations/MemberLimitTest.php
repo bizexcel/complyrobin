@@ -38,6 +38,17 @@ it('lets a Free organisation reach 3 members, counting open invitations', functi
     }
 });
 
+it('frees the seat of an invitation once it expires', function (): void {
+    inviteTo($this->organisation, $this->owner, 'bob@example.com');
+    inviteTo($this->organisation, $this->owner, 'cara@example.com');
+
+    $this->travel(InviteMember::DAYS_VALID + 1)->days();
+    inviteTo($this->organisation, $this->owner, 'dan@example.com');
+
+    expect(Tenancy::run($this->organisation, fn () => Invitation::query()->where('expires_at', '>', now())->pluck('email')->all()))
+        ->toBe(['dan@example.com']);
+});
+
 it('doesn\'t count an invitation twice when it is sent again', function (): void {
     inviteTo($this->organisation, $this->owner, 'bob@example.com');
     inviteTo($this->organisation, $this->owner, 'bob@example.com');

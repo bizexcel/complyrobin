@@ -413,12 +413,12 @@ Every phase must pass Pest, Larastan, Pint and arch tests, and is deployed to a 
 - Tasks and reminders, notifications, media on Object Storage.
 - *Exit:* the isolation suite and the `pg_catalog` test pass.
 
-**Status:** Phase 0 is done (the scaffold, with 50 tests). Phase 1's tasks/notifications engine must support the channel abstraction the Credentials module needs.
+**Status:** Phases 0 and 1 are done. Phase 2 is built (see its status below).
 
 **Phase 2: Credentials register (first product, launch MVP)**
 - Vendor catalogue (seeded), applications, credentials, rotation log with evidence, the `RecordRotation` Action.
 - The reminder scheduler with escalation and a send log.
-- Channels: email, in-app, Slack, Teams, Telegram, WhatsApp Cloud API, plus the signed `.ics` feed.
+- Channels: email, in-app, Slack, Teams, Telegram, plus a private `.ics` feed. WhatsApp (Cloud API) comes later.
 - Dashboard, the 90-day evidence report (PDF/CSV), CSV import, and a module entitlement `credentials`.
 - *Exit:*
   - Tests show that `next_rotation_at` follows `rotation_days` and the last rotation.
@@ -426,6 +426,13 @@ Every phase must pass Pest, Larastan, Pint and arch tests, and is deployed to a 
   - Every channel is tested with `Http::fake`, and the `.ics` feed is signature-protected.
   - No secret value is stored: a schema test asserts there is no column like `secret`/`token_value`.
   - Cross-tenant isolation tests cover the new tables.
+- **Status (2026-11-15): built.** All 17 steps shipped, each test-first with its safeguards mutation-checked:
+  - the register: vendors, applications, credentials, rotations with evidence, the dashboard;
+  - reminders, sent exactly once on the organisation's days, with escalation and weekly repeats on Team;
+  - channels: email and in-app; Slack and Teams, proven by a test message; Telegram, proven by a code typed back; a private calendar link;
+  - organisation settings and the reminder policy; the Members page with seats and invitations;
+  - on Team: the rotation evidence report (PDF and CSV), the audit trail CSV export, and CSV import.
+  - Every exit test above holds. The calendar link is protected by a random token stored only as a hash, rather than a signature. CSV import is in-house, not Filament's importer, because Filament's failed-rows download binds its record outside the organisation.
 
 **Phase 3: Billing, back office and MVP launch** (formerly Phases 5–6, brought forward so the MVP can be sold)
 - The Cashier-style Airwallex layer (section 5), with plans for the `credentials` module (e.g. a free tier capped by credential count, then paid tiers).
