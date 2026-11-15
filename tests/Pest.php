@@ -15,6 +15,8 @@ use App\Core\People\Models\Department;
 use App\Core\People\Models\Person;
 use App\Core\Tasks\Actions\CreateTask;
 use App\Core\Tenancy\Facades\Tenancy;
+use App\Modules\Credentials\Models\Application;
+use Filament\Facades\Filament;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Notifications\AnonymousNotifiable;
 use Illuminate\Support\Facades\DB;
@@ -101,6 +103,7 @@ function populatedOrganisation(string $name): Organisation
         $person = Person::factory()->create(['department_id' => $department->id]);
         app(CreateTask::class)->handle($owner, ['title' => 'Rotate a key', 'assignee_id' => $person->id], $person);
         app(Numbering::class)->next('credential', 'CRD');
+        Application::factory()->create(['owner_id' => $person->id]);
 
         DB::connection('pgsql_migrator')->table('media')->insert([
             'id' => (string) Str::uuid7(), 'organisation_id' => $organisation->id, 'uuid' => (string) Str::uuid7(),
@@ -111,4 +114,15 @@ function populatedOrganisation(string $name): Organisation
     });
 
     return $organisation;
+}
+
+/**
+ * Act as the user inside the organisation, as the panel's middleware would.
+ */
+function openOrganisationAs(User $user, Organisation $organisation): void
+{
+    test()->actingAs($user);
+    Filament::setCurrentPanel('app');
+    Filament::setTenant($organisation);
+    Tenancy::set($organisation);
 }

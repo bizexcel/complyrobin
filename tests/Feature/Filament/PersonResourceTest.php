@@ -9,24 +9,12 @@ use App\Filament\App\Resources\People\Pages\CreatePerson;
 use App\Filament\App\Resources\People\Pages\EditPerson;
 use App\Filament\App\Resources\People\Pages\ListPeople;
 use Filament\Actions\DeleteAction;
-use Filament\Facades\Filament;
 use Livewire\Livewire;
 
 beforeEach(function (): void {
     $this->owner = User::factory()->create();
     $this->organisation = app(CreateOrganisation::class)->handle($this->owner, 'Acme');
 });
-
-/**
- * Act as the user inside the organisation, as the panel's middleware would.
- */
-function openOrganisationAs(User $user, $organisation): void
-{
-    test()->actingAs($user);
-    Filament::setCurrentPanel('app');
-    Filament::setTenant($organisation);
-    Tenancy::set($organisation);
-}
 
 it('lists only the current organisation\'s people', function (): void {
     $globex = app(CreateOrganisation::class)->handle(User::factory()->create(), 'Globex');
