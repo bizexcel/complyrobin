@@ -14,6 +14,7 @@ use App\Core\People\Models\Department;
 use App\Core\People\Models\Person;
 use App\Core\Tasks\Actions\CreateTask;
 use App\Core\Tenancy\Facades\Tenancy;
+use App\Modules\Credentials\Actions\ClaimDueReminders;
 use App\Modules\Credentials\Actions\RecordRotation;
 use App\Modules\Credentials\Models\Application;
 use App\Modules\Credentials\Models\Credential;
@@ -111,6 +112,8 @@ function populatedOrganisation(string $name): Organisation
             'notes' => 'Rotated for the fixture',
             'evidence' => [evidencePdf()],
         ]);
+        Credential::factory()->dueIn(5)->create(['application_id' => $application->id, 'owner_id' => $person->id]);
+        app(ClaimDueReminders::class)->handle(now());
 
     });
 

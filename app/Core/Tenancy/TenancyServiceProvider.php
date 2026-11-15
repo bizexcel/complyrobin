@@ -12,7 +12,6 @@ use Illuminate\Database\Schema\Builder;
 use Illuminate\Database\Schema\ForeignKeyDefinition;
 use Illuminate\Log\Context\Repository;
 use Illuminate\Queue\Events\JobExceptionOccurred;
-use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Queue\Events\JobProcessed;
 use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Facades\Event;
@@ -23,6 +22,7 @@ class TenancyServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(TenantContext::class);
+        $this->app->singleton(JobTenancyStack::class);
     }
 
     public function boot(): void
@@ -44,18 +44,25 @@ class TenancyServiceProvider extends ServiceProvider
             }
         });
 
-        // Queued jobs run as the organisation they were dispatched in, and nothing carries over to the next job.
+        // Queued jobs run as the organisation they were dispatched in. Afterwards the organisation from before the job
+        // comes back: none on a worker, or the surrounding one when a job runs synchronously inside Tenancy::run().
         Context::hydrated(function (Repository $context): void {
+            $tenancy = $this->app->make(TenantContext::class);
+            $this->app->make(JobTenancyStack::class)->push($tenancy->check() ? $tenancy->id() : null);
+
             if ($context->hasHidden(TenantContext::CONTEXT_KEY)) {
-                $this->app->make(TenantContext::class)->set((string) $context->getHidden(TenantContext::CONTEXT_KEY));
+                $tenancy->set((string) $context->getHidden(TenantContext::CONTEXT_KEY));
             }
         });
 
-        Event::listen([JobProcessed::class, JobFailed::class, JobExceptionOccurred::class], function (): void {
-            $context = $this->app->make(TenantContext::class);
+        Event::listen([JobProcessed::class, JobExceptionOccurred::class], function (): void {
+            $tenancy = $this->app->make(TenantContext::class);
+            $previous = $this->app->make(JobTenancyStack::class)->pop();
 
-            if ($context->check()) {
-                $context->forget();
+            if ($previous !== null) {
+                $tenancy->set($previous);
+            } elseif ($tenancy->check()) {
+                $tenancy->forget();
             }
         });
 

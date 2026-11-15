@@ -59,3 +59,21 @@ it('runs scheduled work inside each organisation in turn, skipping deleted ones'
     expect($seen)->toEqual([$acme->id => $acme->id, $globex->id => $globex->id])
         ->and(Tenancy::check())->toBeFalse();
 });
+
+it('keeps the surrounding organisation after a job runs synchronously inside it', function (): void {
+    config(['queue.default' => 'sync']);
+    [$acme, $globex] = Organisation::factory()->count(2)->create();
+
+    $after = Tenancy::run($acme, function () use ($globex): array {
+        RecordsTenantJob::dispatch();
+        $afterOwnJob = Tenancy::id();
+        Tenancy::run($globex, function (): void {
+            RecordsTenantJob::dispatch();
+        });
+
+        return [$afterOwnJob, Tenancy::id(), DB::connection('pgsql')->scalar("select current_setting('app.organisation_id', true)")];
+    });
+
+    expect($after)->toBe([$acme->id, $acme->id, $acme->id])
+        ->and(Tenancy::check())->toBeFalse();
+});

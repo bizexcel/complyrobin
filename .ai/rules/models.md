@@ -15,7 +15,7 @@ Never list `organisation_id` in `#[Fillable]`; the trait sets it, and refuses up
 Cast enums to backed PHP enums and annotate enum-cast properties with `@property` for Larastan. Human-facing numbers (`reference`) come from `App\Core\Numbering\Numbering::next($series, $prefix, restartsYearly: …)`, never from the id: one atomic upsert per number into `counters`, so references never repeat, and yearly series restart in the organisation's time zone. Store the result in a `reference` column with `unique(organisation_id, reference)`.
 
 ## Every tenant model is audited
-Tenant models also use `App\Core\Audit\Concerns\LogsTenantActivity`, which writes each create, update and delete (who, and each attribute's old and new value) to the organisation's `activities` trail. Hidden and `encrypted` attributes are never written, so mark secrets one or the other. The trail is append-only for the app; `audit:prune` (scheduled daily) removes entries after `activitylog.clean_after_days` (730). Enforced by `ArchTest`.
+Tenant models also use `App\Core\Audit\Concerns\LogsTenantActivity`, which writes each create, update and delete (who, and each attribute's old and new value) to the organisation's `activities` trail. Hidden and `encrypted` attributes are never written, so mark secrets one or the other. The trail is append-only for the app; `audit:prune` (scheduled daily) removes entries after `activitylog.clean_after_days` (730). Enforced by `ArchTest`. A model that is itself a log (the `reminders` send log) keeps the trait but sets `protected static array $recordEvents = [];` so it doesn't double every write.
 
 ## No business logic
 Models hold relations, casts and small accessors. Rules and writes with meaning live in `Actions`.

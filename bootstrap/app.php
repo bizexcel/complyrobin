@@ -11,7 +11,7 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
-    ->withCommands([__DIR__.'/../app/Core/Audit/Commands', __DIR__.'/../app/Core/Access/Commands'])
+    ->withCommands([__DIR__.'/../app/Core/Audit/Commands', __DIR__.'/../app/Core/Access/Commands', __DIR__.'/../app/Modules/Credentials/Commands'])
     ->withMiddleware(function (Middleware $middleware): void {
         //
     })
