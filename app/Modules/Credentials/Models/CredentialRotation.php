@@ -11,6 +11,8 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
 
 /**
  * One recorded rotation. Never changed or deleted by the app.
@@ -22,9 +24,9 @@ use Illuminate\Support\Carbon;
  * @property string|null $notes
  */
 #[Fillable(['credential_id', 'rotated_by_id', 'rotated_at', 'due_at', 'notes'])]
-class CredentialRotation extends Model
+class CredentialRotation extends Model implements HasMedia
 {
-    use BelongsToOrganisation, HasUuids, LogsTenantActivity;
+    use BelongsToOrganisation, HasUuids, InteractsWithMedia, LogsTenantActivity;
 
     public const null UPDATED_AT = null;
 
@@ -42,6 +44,12 @@ class CredentialRotation extends Model
     public function rotatedBy(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection('evidence')
+            ->acceptsMimeTypes(['application/pdf', 'image/png', 'image/jpeg', 'image/webp', 'text/plain']);
     }
 
     /**

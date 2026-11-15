@@ -2,6 +2,8 @@
 
 namespace App\Filament\App\Resources\Credentials;
 
+use App\Core\Entitlements\Entitlements;
+use App\Core\Entitlements\Enums\Feature;
 use App\Core\Organisations\Models\Organisation;
 use App\Filament\App\Actor;
 use App\Modules\Credentials\Actions\RecordRotation;
@@ -12,6 +14,7 @@ use App\Modules\Credentials\Models\Credential;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Textarea;
 use Illuminate\Support\HtmlString;
 
@@ -55,6 +58,15 @@ final class CredentialPresenter
                 DateTimePicker::make('rotated_at')->label('Rotated at')->default(now())->maxDate(now())->required(),
                 DateTimePicker::make('expires_at')->label('New key expires')->visible($record->expires_at !== null)->required($record->expires_at !== null),
                 Textarea::make('notes')->maxLength(5000)->helperText('What was done, e.g. "New token set in Laravel Cloud prod". Never the key.'),
+                FileUpload::make('evidence')
+                    ->label('Evidence (Team)')
+                    ->helperText('Screenshots or exports showing the new key is in place. PDF, PNG, JPG, WebP or text, up to 10 MB each.')
+                    ->multiple()
+                    ->maxFiles((int) config('credentials.evidence.max_files'))
+                    ->maxSize((int) config('credentials.evidence.max_kilobytes'))
+                    ->acceptedFileTypes(['application/pdf', 'image/png', 'image/jpeg', 'image/webp', 'text/plain'])
+                    ->storeFiles(false)
+                    ->visible(fn (): bool => app(Entitlements::class)->allows(Feature::EvidenceReport)),
             ])
             ->action(fn (Credential $record, array $data) => app(RecordRotation::class)->handle(Actor::current(), $record, $data));
     }

@@ -2,25 +2,30 @@
 
 namespace App\Modules\Credentials\Actions;
 
+use App\Core\Entitlements\Entitlements;
 use App\Core\Identity\Models\User;
 use App\Modules\Credentials\Models\Credential;
 use App\Modules\Credentials\Models\CredentialRotation;
 use App\Modules\Credentials\Rules\NotASecret;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
-final class RecordRotation
+final readonly class RecordRotation
 {
+    public function __construct(private Entitlements $entitlements) {}
+
     /**
      * Record that the credential was rotated, keeping when it had been due, and move its due date on.
      *
-     * Allowed for anyone who rotates credentials, and for the credential's own owner and backup owner.
+     * Allowed for anyone who rotates credentials, and for the credential's own owner and backup owner. Evidence files
+     * (Team) are checked before anything is written.
      *
-     * @param  array{rotated_at?: string|null, expires_at?: string|null, notes?: string|null}  $data
+     * @param  array{rotated_at?: string|null, expires_at?: string|null, notes?: string|null, evidence?: array<mixed>|null}  $data  evidence: uploaded files; anything else is ignored
      *
      * @throws AuthorizationException
      * @throws ValidationException
@@ -29,7 +34,11 @@ final class RecordRotation
     {
         Gate::forUser($actor)->authorize('rotate', $credential);
 
-        return DB::transaction(function () use ($actor, $credential, $data): CredentialRotation {
+        $evidence = array_values(array_filter($data['evidence'] ?? [], fn (mixed $file): bool => $file instanceof UploadedFile));
+        unset($data['evidence']);
+        AttachRotationEvidence::validate($evidence, 0, $this->entitlements);
+
+        return DB::transaction(function () use ($actor, $credential, $data, $evidence): CredentialRotation {
             $locked = Credential::query()->lockForUpdate()->findOrFail($credential->getKey());
 
             $validated = Validator::make(['rotated_at' => $data['rotated_at'] ?? now()->toIso8601String(), ...$data], [
@@ -57,6 +66,10 @@ final class RecordRotation
                 'last_rotated_at' => Carbon::parse($validated['rotated_at']),
                 'expires_at' => $validated['expires_at'] ?? null,
             ])->save();
+
+            foreach ($evidence as $file) {
+                $rotation->addMedia($file)->toMediaCollection('evidence');
+            }
 
             $credential->refresh();
 

@@ -7,6 +7,8 @@ use App\Modules\Credentials\Models\CredentialRotation;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Support\HtmlString;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
  * The credential's rotation history. Read-only: rotations are recorded with the "Record rotation" action and never
@@ -38,7 +40,21 @@ class RotationsRelationManager extends RelationManager
                     ->color(fn (string $state): string => $state === 'On time' ? 'success' : 'warning'),
                 TextColumn::make('rotatedBy.name')->label('By'),
                 TextColumn::make('notes')->limit(80)->wrap(),
+                TextColumn::make('evidence')
+                    ->state(fn (CredentialRotation $record): ?HtmlString => $this->evidenceLinks($record))
+                    ->html()
+                    ->placeholder('—'),
             ])
             ->defaultSort('rotated_at', 'desc');
+    }
+
+    /**
+     * Download links that work for five minutes.
+     */
+    private function evidenceLinks(CredentialRotation $rotation): ?HtmlString
+    {
+        $links = $rotation->getMedia('evidence')->map(fn (Media $file): string => '<a href="'.e($file->getTemporaryUrl(now()->addMinutes(5))).'" class="underline">'.e($file->file_name).'</a>');
+
+        return $links->isEmpty() ? null : new HtmlString($links->implode('<br>'));
     }
 }

@@ -19,10 +19,11 @@ use App\Modules\Credentials\Models\Application;
 use App\Modules\Credentials\Models\Credential;
 use Filament\Facades\Filament;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Notifications\AnonymousNotifiable;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -90,6 +91,7 @@ function invitationLink(string $email): string
 function populatedOrganisation(string $name): Organisation
 {
     Notification::fake();
+    Storage::fake('local');
     $owner = User::factory()->create();
     $organisation = app(CreateOrganisation::class)->handle($owner, $name);
     $staff = User::factory()->create(['platform_role' => PlatformRole::Admin]);
@@ -97,7 +99,7 @@ function populatedOrganisation(string $name): Organisation
 
     test()->actingAs($owner);
 
-    Tenancy::run($organisation, function () use ($owner, $organisation): void {
+    Tenancy::run($organisation, function () use ($owner): void {
         $owner->givePermissionTo(Ability::ManagePeople->value);
         app(InviteMember::class)->handle($owner, Str::lower(Str::random(8)).'@example.com', 'Editor');
         $department = Department::factory()->create();
@@ -105,14 +107,11 @@ function populatedOrganisation(string $name): Organisation
         app(CreateTask::class)->handle($owner, ['title' => 'Rotate a key', 'assignee_id' => $person->id], $person);
         $application = Application::factory()->create(['owner_id' => $person->id]);
         $credential = Credential::factory()->create(['application_id' => $application->id, 'owner_id' => $person->id]);
-        app(RecordRotation::class)->handle($owner, $credential, ['notes' => 'Rotated for the fixture']);
-
-        DB::connection('pgsql_migrator')->table('media')->insert([
-            'id' => (string) Str::uuid7(), 'organisation_id' => $organisation->id, 'uuid' => (string) Str::uuid7(),
-            'model_type' => Person::class, 'model_id' => $person->id, 'collection_name' => 'evidence', 'name' => 'evidence',
-            'file_name' => 'evidence.pdf', 'disk' => 'local', 'size' => 1, 'manipulations' => '[]',
-            'custom_properties' => '[]', 'generated_conversions' => '[]', 'responsive_images' => '[]',
+        app(RecordRotation::class)->handle($owner, $credential, [
+            'notes' => 'Rotated for the fixture',
+            'evidence' => [evidencePdf()],
         ]);
+
     });
 
     return $organisation;
@@ -127,4 +126,12 @@ function openOrganisationAs(User $user, Organisation $organisation): void
     Filament::setCurrentPanel('app');
     Filament::setTenant($organisation);
     Tenancy::set($organisation);
+}
+
+/**
+ * A small but genuine PDF, as evidence uploads are checked by their content.
+ */
+function evidencePdf(string $name = 'evidence.pdf'): UploadedFile
+{
+    return UploadedFile::fake()->createWithContent($name, "%PDF-1.4\n1 0 obj << /Type /Catalog >> endobj\ntrailer << /Root 1 0 R >>\n%%EOF\n");
 }
