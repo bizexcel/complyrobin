@@ -9,4 +9,5 @@ enum Ability: string
 {
     case UpdateOrganisation = 'organisation.update';
     case ManageMembers = 'members.manage';
+    case ManagePeople = 'people.manage';
 }

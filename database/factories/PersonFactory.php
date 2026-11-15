@@ -1,0 +1,24 @@
+<?php
+
+namespace Database\Factories;
+
+use App\Core\People\Models\Person;
+use Illuminate\Database\Eloquent\Factories\Factory;
+
+/**
+ * @extends Factory<Person>
+ */
+class PersonFactory extends Factory
+{
+    /**
+     * @return array<string, mixed>
+     */
+    public function definition(): array
+    {
+        return [
+            'name' => fake()->name(),
+            'email' => fake()->unique()->safeEmail(),
+            'job_title' => fake()->jobTitle(),
+        ];
+    }
+}

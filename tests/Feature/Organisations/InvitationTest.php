@@ -19,20 +19,6 @@ beforeEach(function (): void {
     $this->organisation = app(CreateOrganisation::class)->handle($this->owner, 'Acme');
 });
 
-/**
- * A member of the organisation with the given role.
- */
-function memberWithRole(Organisation $organisation, SystemRole $role): User
-{
-    $user = User::factory()->create();
-    Tenancy::run($organisation, function () use ($organisation, $user, $role): void {
-        $organisation->users()->attach($user);
-        $user->assignRole($role->value);
-    });
-
-    return $user;
-}
-
 function invite(Organisation $organisation, User $actor, string $email, string $role = 'Editor'): Invitation
 {
     return Tenancy::run($organisation, fn () => app(InviteMember::class)->handle($actor, $email, $role));

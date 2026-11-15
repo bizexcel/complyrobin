@@ -1,5 +1,9 @@
 <?php
 
+use App\Core\Access\Enums\SystemRole;
+use App\Core\Identity\Models\User;
+use App\Core\Organisations\Models\Organisation;
+use App\Core\Tenancy\Facades\Tenancy;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\File;
 use Tests\TestCase;
@@ -26,4 +30,18 @@ function appModels(): array
     }
 
     return $models;
+}
+
+/**
+ * A new member of the organisation with the given role.
+ */
+function memberWithRole(Organisation $organisation, SystemRole $role): User
+{
+    $user = User::factory()->create();
+    Tenancy::run($organisation, function () use ($organisation, $user, $role): void {
+        $organisation->users()->attach($user);
+        $user->assignRole($role->value);
+    });
+
+    return $user;
 }

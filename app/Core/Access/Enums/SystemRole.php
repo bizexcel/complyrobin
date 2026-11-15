@@ -21,8 +21,9 @@ enum SystemRole: string
     {
         return match ($this) {
             self::Owner => [],
-            self::Admin => [Ability::UpdateOrganisation, Ability::ManageMembers],
-            self::Editor, self::Approver, self::Viewer => [],
+            self::Admin => [Ability::UpdateOrganisation, Ability::ManageMembers, Ability::ManagePeople],
+            self::Editor => [Ability::ManagePeople],
+            self::Approver, self::Viewer => [],
         };
     }
 }
