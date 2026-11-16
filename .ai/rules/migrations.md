@@ -29,4 +29,4 @@ Laravel adds a column's `->primary()` after explicit foreign keys, so a table th
 Use `timestampsTz()`, `softDeletesTz()`, `timestampTz()`. Store enums as strings and cast them to PHP enums; never database enums. Morphs that point at our models use `uuidMorphs()` / `nullableUuidMorphs()`.
 
 ## Run as the owner
-Migrations run as `app_migrator`: `php artisan migrate --database=pgsql_migrator`. The app role cannot create tables.
+Migrations run as `app_migrator`: `php artisan migrate --database=pgsql_migrator`. The app role cannot create tables. The flag picks a Postgres login, not an engine: ComplyRobin is Postgres only, and `config/database.php` holds just the three role connections (`DatabaseConnectionsTest`).

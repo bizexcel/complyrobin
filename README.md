@@ -37,6 +37,8 @@ php artisan access:sync-system-roles
 ```
 
 ## Database roles
+ComplyRobin runs on Postgres only. One database, three logins: `--database=pgsql_migrator` on migrate and seed picks the owner login, not a database engine. The app's own login can't create or change tables, which is what lets Postgres refuse to show one organisation's rows to another. Forgetting the flag fails safely with "permission denied".
+
 `database/sql/roles.sql` is idempotent and is applied by the compose init script, by CI, and by deploys.
 
 | Role | Used by | Row-level security |

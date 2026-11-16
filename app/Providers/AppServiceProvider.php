@@ -17,6 +17,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        // Postgres only: Laravel merges its own sqlite/mysql/mariadb/sqlsrv defaults into config/database.php; drop them.
+        // Postgres connections Laravel Cloud adds (e.g. pgsql-unpooled) stay.
+        config(['database.connections' => array_filter(
+            (array) config('database.connections'),
+            fn (mixed $connection): bool => is_array($connection) && ($connection['driver'] ?? null) === 'pgsql',
+        )]);
+
         // Laravel Cloud attaches its buckets after the config loads, so the private disk is settled here.
         config(['media-library.disk_name' => PrivateDisk::name()]);
     }
