@@ -111,7 +111,7 @@ Laravel 13 · Filament 5 · PHP 8.5 · Laravel Cloud · Postgres
 - Run `composer audit` in CI.
 
 ## Hosting (Laravel Cloud, Singapore `ap-southeast-1`)
-- **Compute:** PHP 8.5 on PHP-FPM; no Octane at launch.
+- **Compute:** PHP 8.5 on PHP-FPM; no Octane at launch. The tenancy state is per-request (`scoped`), so Octane can be tried later (2026-11-16); it needs the `laravel/octane` package and a full test run under it first.
 - **Database:** Serverless Postgres (Neon), production minimum CU set, point-in-time recovery 7–14 days.
   - The app and workers go through Cloud's **pooler** (`DB_POOLING=true`); migrations use the **direct** host automatically. Section 3 explains how tenancy stays safe behind a pooler.
 - **Cache and sessions:** Laravel Valkey for cache, sessions and locks.

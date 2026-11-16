@@ -46,7 +46,7 @@ class AccessServiceProvider extends ServiceProvider
 
     private function followTenant(?string $organisationId): void
     {
-        $registrar = $this->app->make(PermissionRegistrar::class);
+        $registrar = app(PermissionRegistrar::class);
         $version = Cache::get(self::VERSION_KEY, 'v1');
 
         $registrar->setPermissionsTeamId($organisationId);

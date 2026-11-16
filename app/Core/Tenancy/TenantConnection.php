@@ -12,18 +12,12 @@ use Illuminate\Database\PostgresConnection;
  * (Laravel Cloud's), where consecutive statements can run on different server sessions shared with other clients.
  *
  * The prefix makes each query two statements in one message, which only emulated prepares allow (config/database.php).
+ *
+ * A connection outlives the request or job that opened it on a long-running server (a queue worker, Octane), so it
+ * never keeps a TenantContext: it asks the container for the current one before every statement.
  */
 final class TenantConnection extends PostgresConnection
 {
-    private ?TenantContext $tenancy = null;
-
-    public function useTenancy(TenantContext $tenancy): self
-    {
-        $this->tenancy = $tenancy;
-
-        return $this;
-    }
-
     /**
      * @param  string  $query
      * @param  array<array-key, mixed>  $bindings
@@ -31,7 +25,7 @@ final class TenantConnection extends PostgresConnection
     #[\Override]
     protected function runQueryCallback($query, $bindings, Closure $callback)
     {
-        $prefix = ($this->tenancy ?? app(TenantContext::class))->statementPrefix();
+        $prefix = app(TenantContext::class)->statementPrefix();
 
         return parent::runQueryCallback($query, $bindings, fn (string $query, array $bindings): mixed => $callback($prefix.$query, $bindings));
     }

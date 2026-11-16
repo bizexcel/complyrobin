@@ -22,6 +22,14 @@ use Illuminate\Support\Facades\Facade;
  */
 class Tenancy extends Facade
 {
+    /**
+     * TenantContext is scoped: always ask the container, so a forgotten one is never used again.
+     *
+     * @var bool
+     */
+    #[\Override]
+    protected static $cached = false;
+
     protected static function getFacadeAccessor(): string
     {
         return TenantContext::class;
