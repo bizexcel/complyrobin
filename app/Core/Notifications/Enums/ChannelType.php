@@ -36,11 +36,26 @@ enum ChannelType: string
     }
 
     /**
-     * Whether ComplyRobin is set up to use this kind of channel.
+     * Whether ComplyRobin offers this kind of channel: switched on in CHAT_CHANNELS and, for Telegram, with the bot set
+     * up. A channel of a type that isn't available keeps its settings but gets no reminders.
      */
     public function isAvailable(): bool
     {
-        return $this !== self::Telegram || filled(config('services.telegram.bot_token'));
+        return in_array($this->value, (array) config('services.chat_channels.enabled', []), true)
+            && ($this !== self::Telegram || filled(config('services.telegram.bot_token')));
+    }
+
+    /**
+     * @return list<self>
+     */
+    public static function available(): array
+    {
+        return array_values(array_filter(self::cases(), fn (self $type): bool => $type->isAvailable()));
+    }
+
+    public static function anyAvailable(): bool
+    {
+        return self::available() !== [];
     }
 
     /**

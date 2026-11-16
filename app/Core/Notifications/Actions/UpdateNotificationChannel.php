@@ -35,7 +35,9 @@ final readonly class UpdateNotificationChannel
         ])->after(function ($validator) use ($channel, $data): void {
             $enabling = (bool) ($data['is_enabled'] ?? $channel->is_enabled) && ! $channel->is_enabled;
 
-            if (($enabling || filled($data['webhook_url'] ?? null)) && ! $this->entitlements->allows($channel->type->feature())) {
+            if (($enabling || filled($data['webhook_url'] ?? null)) && ! $channel->type->isAvailable()) {
+                $validator->errors()->add('is_enabled', "{$channel->type->label()} isn't available yet.");
+            } elseif (($enabling || filled($data['webhook_url'] ?? null)) && ! $this->entitlements->allows($channel->type->feature())) {
                 $validator->errors()->add('is_enabled', 'Team chat reminders are part of Team. Upgrade to use this channel.');
             }
         })->validate();

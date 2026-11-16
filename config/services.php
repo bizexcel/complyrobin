@@ -35,6 +35,12 @@ return [
         ],
     ],
 
+    // Which team chat channels ComplyRobin offers, comma-separated (slack, teams, telegram). Empty, the default, means
+    // reminders go by email, in-app and the calendar link only. Switching a type off pauses its saved channels.
+    'chat_channels' => [
+        'enabled' => array_values(array_filter(array_map(trim(...), explode(',', (string) env('CHAT_CHANNELS', ''))))),
+    ],
+
     // ComplyRobin's Telegram bot, which posts reminders to the chats organisations verify. Telegram is offered only when set.
     'telegram' => [
         'bot_token' => env('TELEGRAM_BOT_TOKEN'),

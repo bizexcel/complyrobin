@@ -35,6 +35,7 @@
         <env name="DB_MIGRATOR_USERNAME" value="app_migrator"/>
         <env name="DB_MIGRATOR_PASSWORD" value="migrator"/>
         <env name="DB_URL" value=""/>
+        <env name="CHAT_CHANNELS" value="slack,teams,telegram"/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>

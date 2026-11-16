@@ -7,6 +7,7 @@ use App\Core\Access\Members;
 use App\Core\Entitlements\Entitlements;
 use App\Core\Entitlements\Enums\Feature;
 use App\Core\Identity\Models\User;
+use App\Core\Notifications\Enums\ChannelType;
 use App\Core\Notifications\Models\NotificationChannel;
 use App\Core\Organisations\Models\Organisation;
 use App\Core\People\Models\Person;
@@ -82,7 +83,13 @@ final readonly class ReminderRecipients
      */
     private function readyChannels(): array
     {
-        return NotificationChannel::query()->where('is_enabled', true)->whereNotNull('verified_at')->orderBy('name')->get()->all();
+        return NotificationChannel::query()
+            ->where('is_enabled', true)
+            ->whereNotNull('verified_at')
+            ->whereIn('type', array_map(fn (ChannelType $type): string => $type->value, ChannelType::available()))
+            ->orderBy('name')
+            ->get()
+            ->all();
     }
 
     public static function isReachable(Person $person): bool

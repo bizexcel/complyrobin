@@ -59,8 +59,8 @@ class DeliverReminders implements ShouldQueue
         if ($first->notification_channel_id !== null) {
             $channel = $first->notificationChannel;
 
-            // Paused after a downgrade, or switched off since it was claimed: leave it unsent.
-            if (! $channel instanceof NotificationChannel || ! $channel->isReady() || ! $entitlements->allows($channel->type->feature())) {
+            // Paused after a downgrade, switched off since it was claimed, or its type no longer offered: leave it unsent.
+            if (! $channel instanceof NotificationChannel || ! $channel->isReady() || ! $channel->type->isAvailable() || ! $entitlements->allows($channel->type->feature())) {
                 return;
             }
 

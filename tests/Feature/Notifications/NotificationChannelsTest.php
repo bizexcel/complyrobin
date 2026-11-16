@@ -9,16 +9,21 @@ use App\Core\Identity\Models\User;
 use App\Core\Notifications\Actions\CreateNotificationChannel;
 use App\Core\Notifications\Actions\DeleteNotificationChannel;
 use App\Core\Notifications\Actions\SendTestMessage;
+use App\Core\Notifications\Actions\UpdateNotificationChannel;
 use App\Core\Notifications\Actions\VerifyNotificationChannel;
 use App\Core\Notifications\Models\NotificationChannel;
 use App\Core\Organisations\Actions\CreateOrganisation;
 use App\Core\Organisations\Models\Organisation;
 use App\Core\People\Models\Person;
 use App\Core\Tenancy\Facades\Tenancy;
+use App\Filament\App\Resources\NotificationChannels\NotificationChannelResource;
 use App\Filament\App\Resources\NotificationChannels\Pages\CreateNotificationChannel as CreateNotificationChannelPage;
 use App\Filament\App\Resources\NotificationChannels\Pages\ListNotificationChannels;
+use App\Modules\Credentials\Jobs\DeliverReminders;
 use App\Modules\Credentials\Models\Application;
 use App\Modules\Credentials\Models\Credential;
+use App\Modules\Credentials\Models\Reminder;
+use App\Modules\Credentials\Notifications\CredentialsDue;
 use Filament\Actions\Testing\TestAction;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\QueryException;
@@ -31,6 +36,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
@@ -396,4 +402,63 @@ it('hides Telegram from the channel types until the bot is set up', function ():
         ->fillForm(['type' => 'telegram', 'name' => 'Ops group', 'chat_id' => TELEGRAM_CHAT])
         ->call('create')
         ->assertHasFormErrors(['type']);
+});
+
+it('offers no chat channels until CHAT_CHANNELS switches them on', function (): void {
+    teamPlanFor($this->organisation);
+    config(['services.chat_channels.enabled' => []]);
+    openOrganisationAs($this->owner, $this->organisation);
+
+    expect(NotificationChannelResource::canAccess())->toBeFalse()
+        ->and(fn (): NotificationChannel => addChannel(['type' => 'slack', 'name' => '#ops', 'webhook_url' => SLACK_URL]))->toThrow(ValidationException::class, 'isn\'t available');
+
+    config(['services.chat_channels.enabled' => ['slack']]);
+
+    expect(NotificationChannelResource::canAccess())->toBeTrue()
+        ->and(addChannel(['type' => 'slack', 'name' => '#ops', 'webhook_url' => SLACK_URL])->type->value)->toBe('slack')
+        ->and(fn (): NotificationChannel => addChannel(['type' => 'teams', 'name' => 'Ops', 'webhook_url' => TEAMS_URL]))->toThrow(ValidationException::class, 'isn\'t available');
+});
+
+it('pauses a saved channel while its type is switched off, and resumes when it is back on', function (): void {
+    $this->travelTo(Carbon::parse('2026-06-01 02:00', 'UTC'));
+    teamPlanFor($this->organisation);
+    Http::fake(['*' => Http::response('ok')]);
+    $channel = testChannel(addChannel(['type' => 'slack', 'name' => '#ops', 'webhook_url' => SLACK_URL]));
+    Tenancy::run($this->organisation, fn () => Credential::factory()->dueIn(7)->create([
+        'application_id' => Application::factory()->create()->id, 'owner_id' => Person::factory()->create(['email' => 'siti@acme.test'])->id,
+    ]));
+    $isReminder = fn (Request $request): bool => str_contains((string) ($request->data()['text'] ?? ''), 'due for rotation');
+    config(['services.chat_channels.enabled' => []]);
+
+    $this->artisan('credentials:send-reminders')->assertSuccessful();
+
+    Http::assertNotSent($isReminder);
+    Notification::assertSentOnDemand(CredentialsDue::class);
+    expect(Tenancy::run($this->organisation, fn (): int => Reminder::query()->whereNotNull('notification_channel_id')->count()))->toBe(0);
+    expect(fn (): NotificationChannel => testChannel($channel))->toThrow(ValidationException::class, 'isn\'t available')
+        ->and(fn () => Tenancy::run($this->organisation, fn () => app(UpdateNotificationChannel::class)
+            ->handle($this->owner, $channel->refresh(), ['name' => '#ops', 'webhook_url' => SLACK_URL])))->toThrow(ValidationException::class, 'isn\'t available');
+
+    config(['services.chat_channels.enabled' => ['slack']]);
+    $this->travel(1)->hour();
+    $this->artisan('credentials:send-reminders')->assertSuccessful();
+
+    Http::assertSent($isReminder);
+});
+
+it('doesn\'t deliver a reminder already claimed for a channel whose type was switched off since', function (): void {
+    $this->travelTo(Carbon::parse('2026-06-01 02:00', 'UTC'));
+    teamPlanFor($this->organisation);
+    Http::fake(['*' => Http::response('ok')]);
+    testChannel(addChannel(['type' => 'slack', 'name' => '#ops', 'webhook_url' => SLACK_URL]));
+    Tenancy::run($this->organisation, fn () => Credential::factory()->dueIn(7)->create(['application_id' => Application::factory()->create()->id]));
+    Queue::fake();
+    $this->artisan('credentials:send-reminders')->assertSuccessful();
+    $job = Queue::pushed(DeliverReminders::class)
+        ->first(fn ($job): bool => Tenancy::run($this->organisation, fn (): bool => Reminder::query()->whereKey($job->reminderIds)->whereNotNull('notification_channel_id')->exists()));
+
+    config(['services.chat_channels.enabled' => []]);
+    Tenancy::run($this->organisation, fn () => app()->call([$job, 'handle']));
+
+    Http::assertNotSent(fn (Request $request): bool => str_contains((string) ($request->data()['text'] ?? ''), 'due for rotation'));
 });

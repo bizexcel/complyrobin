@@ -1,6 +1,6 @@
 # ComplyRobin
 
-**The bird that reminds you on time.** ComplyRobin keeps track of the SaaS tokens and keys your business runs on: who owns each one, where it is used, when it was last rotated and when it is due. Reminders arrive by email, Slack, Teams, Telegram, in-app or your calendar, and every rotation is logged as evidence. The same register then feeds ISO management systems: **BCMS** (ISO 22301) and **ISMS** (ISO 27001:2022).
+**The bird that reminds you on time.** ComplyRobin keeps track of the SaaS tokens and keys your business runs on: who owns each one, where it is used, when it was last rotated and when it is due. Reminders arrive by email, in-app or your calendar, and, once switched on, Slack, Teams or Telegram, and every rotation is logged as evidence. The same register then feeds ISO management systems: **BCMS** (ISO 22301) and **ISMS** (ISO 27001:2022).
 
 ComplyRobin stores information *about* credentials, never the secret values.
 
@@ -25,6 +25,8 @@ php artisan serve
 - **Staff panel:** http://localhost:8000/admin. Your user needs `platform_role = admin`.
 
 ## Deploying
+Reminders go by email (set a mail service, e.g. Resend through Laravel Cloud), in-app and the calendar link. Team chat channels stay off until you list them in `CHAT_CHANNELS` (e.g. `slack,teams`); Telegram also needs `TELEGRAM_BOT_TOKEN`.
+
 After migrating as the owner, seed the code-defined permissions and vendor catalogue, then sync system roles (all idempotent):
 
 ```bash

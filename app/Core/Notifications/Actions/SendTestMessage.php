@@ -32,6 +32,10 @@ final readonly class SendTestMessage
     {
         Gate::forUser($actor)->authorize('update', $channel);
 
+        if (! $channel->type->isAvailable()) {
+            throw ValidationException::withMessages(['channel' => "{$channel->type->label()} isn't available yet."]);
+        }
+
         if (! $this->entitlements->allows($channel->type->feature())) {
             throw ValidationException::withMessages(['channel' => 'Team chat reminders are part of Team. Upgrade to use this channel.']);
         }

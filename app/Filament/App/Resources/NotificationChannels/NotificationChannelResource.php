@@ -2,6 +2,7 @@
 
 namespace App\Filament\App\Resources\NotificationChannels;
 
+use App\Core\Notifications\Enums\ChannelType;
 use App\Core\Notifications\Models\NotificationChannel;
 use App\Filament\App\Resources\NotificationChannels\Pages\CreateNotificationChannel;
 use App\Filament\App\Resources\NotificationChannels\Pages\EditNotificationChannel;
@@ -31,6 +32,14 @@ class NotificationChannelResource extends Resource
 
     #[\Override]
     protected static ?string $recordTitleAttribute = 'name';
+
+    /**
+     * Hidden altogether while ComplyRobin offers no chat channel type (CHAT_CHANNELS is empty).
+     */
+    public static function canAccess(): bool
+    {
+        return ChannelType::anyAvailable() && parent::canAccess();
+    }
 
     public static function form(Schema $schema): Schema
     {
