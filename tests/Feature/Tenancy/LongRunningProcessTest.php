@@ -96,7 +96,8 @@ it('runs consecutive jobs on one worker each as its own organisation, and the la
     });
     RecordsEachTenantJob::dispatch();
 
-    $this->artisan('queue:work', ['--stop-when-empty' => true, '--sleep' => 0])->assertSuccessful();
+    // A worker stops (exit code 12) once its process passes --memory; here that process is the whole test run.
+    $this->artisan('queue:work', ['--stop-when-empty' => true, '--sleep' => 0, '--memory' => 2048])->assertSuccessful();
 
     expect(Cache::get('jobs-ran-as'))->toBe([[$acme->id, $acme->id], [$globex->id, $globex->id], [null, null]]);
 });
