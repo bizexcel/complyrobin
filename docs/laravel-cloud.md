@@ -79,7 +79,7 @@ ComplyRobin never runs as the database owner, because the owner bypasses the row
   - Add a public bucket named `public` only when something public ships. See `.ai/rules/files.md`.
 - **Queue:**
   - Add a **Managed queue** (Canvas → Add compute → Managed queue). Cloud sets `QUEUE_CONNECTION=cloud`.
-  - It needs Laravel 13.19+ (we're on 13.42) and the AWS SDK. `aws/aws-sdk-php` is already installed through the storage package. If Cloud asks for it in `composer.json`, add it with `composer require aws/aws-sdk-php`.
+  - It needs Laravel 13.19+ (we're on 13.42) and `aws/aws-sdk-php`, which is installed.
   - **Flex** workers stop a job after 90 seconds. Evidence reports and imports are small at launch. If a report or a 1,000-row import ever takes longer, switch the queue to **Pro**.
   - Managed queues don't support `queue:failed`/`queue:retry`. ComplyRobin's jobs record their own failures: reminders get `failed_at`, and the report lock is released.
 - **Scheduler:** turn on the **Scheduler** toggle on the App cluster. It runs:
@@ -89,7 +89,9 @@ ComplyRobin never runs as the database owner, because the owner bypasses the row
   Both use `onOneServer`, so they run once, however many replicas there are.
 - **Mail:**
   - Connect Resend to the Cloud organisation, verify `complyrobin.com` in Resend, then add **Emails** to the environment with sender `hello@complyrobin.com`.
-  - The Resend integration needs the `resend/resend-laravel` package, which **isn't installed yet**. Add it in a small code change before going live.
+  - The `resend/resend-laravel` package the integration needs is installed. ComplyRobin chose Resend (2026-11-16): it is generally available and has bounce webhooks, whereas Cloudflare Email Sending is still beta.
+  - The package's webhook route (`/resend/webhook`) is **off**: without a signing secret it would accept unsigned requests. Switch it on with `RESEND_ROUTES=true` and `RESEND_WEBHOOK_SECRET` only when bounce handling is built.
+  - **Switching to Cloudflare later** needs no code: Laravel 13 has a built-in `cloudflare` mailer. Set `MAIL_MAILER=cloudflare` and the account id and API token (`services.cloudflare`).
   - Resend's sending region closest to Singapore is Tokyo (`ap-northeast-1`).
 
 ## 5. Build and deploy commands

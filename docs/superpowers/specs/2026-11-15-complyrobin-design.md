@@ -75,7 +75,9 @@ Laravel 13 · Filament 5 · PHP 8.5 · Laravel Cloud · Postgres
 | filament/spatie-laravel-media-library-plugin | ^5.11 | Filament upload fields for media library. |
 | spatie/laravel-activitylog | ^5.1 | Audit trail. Gets an `organisation_id` column. |
 | spatie/laravel-pdf | ^2.14 | PDFs through a swappable driver. **DOMPDF** for now, because Laravel Cloud has no Chromium; the Cloudflare driver can replace it later without code changes. |
-| league/flysystem-aws-s3-v3 | ^3.35 | Laravel Object Storage is S3-compatible. This also pulls `aws/aws-sdk-php`, which managed queues need. |
+| league/flysystem-aws-s3-v3 | ^3.35 | Laravel Object Storage is S3-compatible. |
+| aws/aws-sdk-php | ^3.403 | A direct requirement of Laravel Cloud's managed queues. |
+| resend/resend-laravel | ^1.7 | Mail through Laravel Cloud's Resend integration. |
 | propaganistas/laravel-phone | ^6.1 | Phone validation for +60 numbers. |
 | laravel/nightwatch | ^1.30 | First-party monitoring, with PII scrubbing configured. |
 
@@ -116,7 +118,7 @@ Laravel 13 · Filament 5 · PHP 8.5 · Laravel Cloud · Postgres
 - **Files:** Laravel Object Storage buckets, whose visibility is set per bucket. A **private** bucket is the default disk for every private file (evidence, reports, imports), served only through temporary signed URLs. A **public** bucket named `public` is added when something public ships, and **extra buckets** under their own disk names when a feature needs them (decided 2026-11-15). Rule: `.ai/rules/files.md`.
 - **Queues:** managed queues for PDFs, imports/exports, notifications, reminders and webhooks.
 - **Scheduler:** reminders and recurring evaluations.
-- **Mail:** Resend, Postmark or SES, chosen at deploy.
+- **Mail:** Resend, through Laravel Cloud's Resend integration (chosen 2026-11-16 over Cloudflare Email Sending, which is still beta).
 
 ## 1. Structure
 One app at app.complyrobin.com:
@@ -620,7 +622,7 @@ Every convention in this plan is written down where AI agents and new developers
   - An Airwallex sandbox checkout grants a module, and a cancel webhook revokes it.
 
 ## Defaults chosen (the builder may revisit)
-- Mail provider: picked at deploy.
+- Mail provider: Resend (decided 2026-11-16).
 - No Octane at launch.
 - Plain-English role names (Owner, Admin, Editor, Approver, Viewer).
 - Default risk matrices as above, and organisations can edit them.
