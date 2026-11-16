@@ -12,7 +12,7 @@ use Illuminate\Support\Str;
 | (database/sql/roles.sql) and the tenant travels with each statement (App\Core\Tenancy\TenantConnection).
 */
 $directEndpoint = filled(env('DB_DIRECT_HOST'))
-    ? ['host' => env('DB_DIRECT_HOST'), 'port' => env('DB_DIRECT_PORT', '5432')]
+    ? ['host' => env('DB_DIRECT_HOST'), 'port' => env('DB_DIRECT_PORT') ?: '5432']
     : [];
 
 return [

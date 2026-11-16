@@ -31,7 +31,7 @@ it('gives every connection the direct endpoint from DB_DIRECT_HOST, which migrat
     // Resolving connects, so point the direct endpoint at the real Postgres (direct when testing through PgBouncer).
     config(['database.connections.pgsql_migrator.direct' => [
         'host' => config('database.connections.pgsql_migrator.host'),
-        'port' => env('DB_DIRECT_PORT', config('database.connections.pgsql_migrator.port')),
+        'port' => env('DB_DIRECT_PORT') ?: config('database.connections.pgsql_migrator.port'),
     ]]);
     DB::purge('pgsql_migrator');
 
