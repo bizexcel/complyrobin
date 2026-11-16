@@ -115,18 +115,3 @@ it('keeps the signed-in user and the database in step inside a copy of the app, 
         Container::setInstance($app);
     }
 });
-
-it('starts clean when Octane hands over new work, even if the last request ended badly', function (string $event): void {
-    $organisation = Organisation::factory()->create();
-    Tenancy::set($organisation);
-    Tenancy::setUser(User::factory()->create()->id);
-
-    // Octane isn't installed: its events are objects that carry the app and the copy it made for this work.
-    event($event, [(object) ['app' => app(), 'sandbox' => app()]]);
-
-    expect(tenantSettingsInDatabase())->toBe(['organisation' => null, 'user' => null]);
-})->with([
-    'Laravel\Octane\Events\RequestReceived',
-    'Laravel\Octane\Events\TaskReceived',
-    'Laravel\Octane\Events\TickReceived',
-]);

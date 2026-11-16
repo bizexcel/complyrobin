@@ -80,6 +80,7 @@ Laravel 13 · Filament 5 · PHP 8.5 · Laravel Cloud · Postgres
 | resend/resend-laravel | ^1.7 | Mail through Laravel Cloud's Resend integration. |
 | propaganistas/laravel-phone | ^6.1 | Phone validation for +60 numbers. |
 | laravel/nightwatch | ^1.30 | First-party monitoring, with PII scrubbing configured. |
+| laravel/octane | ^2.24 | Installed so the app is tested under Octane's request handling; the Octane runtime itself stays off at launch. |
 
 ### `require-dev`
 | Package | Version | Purpose |
@@ -111,7 +112,7 @@ Laravel 13 · Filament 5 · PHP 8.5 · Laravel Cloud · Postgres
 - Run `composer audit` in CI.
 
 ## Hosting (Laravel Cloud, Singapore `ap-southeast-1`)
-- **Compute:** PHP 8.5 on PHP-FPM; no Octane at launch. The tenancy state is per-request (`scoped`), so Octane can be tried later (2026-11-16); it needs the `laravel/octane` package and a full test run under it first.
+- **Compute:** PHP 8.5 on PHP-FPM; no Octane at launch. The tenancy state is per-request (`scoped`) and `laravel/octane` is installed (2026-11-16): `OctaneTest` sends real requests through an Octane worker. Octane stays switched off until it has been load-tested in a preview.
 - **Database:** Serverless Postgres (Neon), production minimum CU set, point-in-time recovery 7–14 days.
   - The app and workers go through Cloud's **pooler** (`DB_POOLING=true`); migrations use the **direct** host automatically. Section 3 explains how tenancy stays safe behind a pooler.
 - **Cache and sessions:** Laravel Valkey for cache, sessions and locks.

@@ -30,3 +30,8 @@ Thumbs.db
 /public/css/filament
 /public/js/filament
 /public/fonts/filament
+
+# FrankenPHP, when Octane is run locally (`php artisan octane:start`)
+/frankenphp
+/public/frankenphp-worker.php
+**/caddy

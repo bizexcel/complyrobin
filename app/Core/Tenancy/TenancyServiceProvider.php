@@ -17,6 +17,9 @@ use Illuminate\Queue\Events\JobProcessed;
 use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
+use Laravel\Octane\Events\RequestReceived;
+use Laravel\Octane\Events\TaskReceived;
+use Laravel\Octane\Events\TickReceived;
 
 class TenancyServiceProvider extends ServiceProvider
 {
@@ -81,17 +84,13 @@ class TenancyServiceProvider extends ServiceProvider
     }
 
     /**
-     * Octane (not installed yet) runs each request, task and tick in a copy of the app. It forgets scoped services
-     * when one ends normally; this also drops them when one begins, so nothing survives a request that ended badly.
-     * The events are named as strings so the package isn't needed.
+     * Octane runs each request, task and tick in a copy of the app, and forgets scoped services when one ends
+     * normally. This also drops them when one begins, so nothing survives from the worker's boot or from a request
+     * that ended badly.
      */
     private function startCleanOnOctane(): void
     {
-        Event::listen([
-            'Laravel\Octane\Events\RequestReceived',
-            'Laravel\Octane\Events\TaskReceived',
-            'Laravel\Octane\Events\TickReceived',
-        ], function (object $event): void {
+        Event::listen([RequestReceived::class, TaskReceived::class, TickReceived::class], function (RequestReceived|TaskReceived|TickReceived $event): void {
             foreach ([$event->app, $event->sandbox] as $container) {
                 $container->forgetInstance(TenantContext::class);
                 $container->forgetInstance(JobTenancyStack::class);

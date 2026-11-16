@@ -185,7 +185,10 @@ It runs, in order, and stops at the first failure:
 - **Chat channels:** set `CHAT_CHANNELS` (e.g. `slack,teams`) and redeploy. For Telegram, add `telegram` and a `TELEGRAM_BOT_TOKEN` from @BotFather.
 - **Public files:** add a public bucket with the disk name `public`.
 - **Billing:** Airwallex settings come with Phase 3.
-- **Octane:** leave **Use Octane as runtime** off. ComplyRobin launches on PHP-FPM, Cloud's default. The code is prepared for Octane (nothing is kept in memory between requests), but it has never run under it. Switching it on first needs the `laravel/octane` package, then the full test suite and a load test under Octane in a preview.
+- **Octane:** leave **Use Octane as runtime** off for launch. ComplyRobin runs on PHP-FPM, Cloud's default.
+  - **Ready when wanted:** `laravel/octane` is installed and the app keeps nothing in memory between requests. The tests send real requests through an Octane worker and check that organisations and users never carry over.
+  - **Before switching it on:** turn the toggle on in a **preview** first and click through both panels, then load-test it. Watch memory per worker, and whether the database still scales to zero (Octane keeps its database connections open).
+  - **Switching it off again** is the same toggle and a redeploy.
 
 ## Still to confirm on the first deploy or preview
 These are part of the Phase 3 deploy spike. The first preview is a safe place to find out:

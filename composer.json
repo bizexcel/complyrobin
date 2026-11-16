@@ -13,6 +13,7 @@
         "filament/spatie-laravel-media-library-plugin": "^5.11",
         "laravel/framework": "^13.42",
         "laravel/nightwatch": "^1.30",
+        "laravel/octane": "^2.24",
         "laravel/tinker": "^3.0",
         "league/flysystem-aws-s3-v3": "^3.35",
         "propaganistas/laravel-phone": "^6.1",
