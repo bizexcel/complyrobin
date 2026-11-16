@@ -105,6 +105,23 @@ Tests run against a real Postgres database, `complyrobin_test`, never SQLite. Wh
 
 The tests use their own database, so your local data is never touched.
 
+**How a run works.** You don't create anything by hand:
+1. **The database:** the Postgres container made `complyrobin_test` and the three logins on its first start.
+2. **The schema:** the first test in a run builds the tables as `app_migrator`.
+3. **A clean start:** before every test, all tables are emptied and the permissions re-seeded. Each test creates the data it needs.
+4. **Real isolation:** the app side runs as `app_tenant`, so row-level security is live during the tests.
+
+**In parallel.** `composer test` runs the tests in parallel, one process per CPU core.
+- Each process gets its own database (`complyrobin_test_test_1`, `_2`, …), created automatically. All three logins point at it.
+- That takes the run from about 100 seconds to about 30.
+- `app_migrator` needs permission to create those databases. New local containers get it automatically. On an older volume, grant it once:
+
+```bash
+docker compose exec pgsql psql -U postgres -c "ALTER ROLE app_migrator CREATEDB"
+```
+
+That permission is for local and CI only: never give it in production.
+
 ```bash
 composer lint       # Pint
 ```
@@ -118,7 +135,19 @@ composer refactor   # Rector dry run
 ```
 
 ```bash
-composer test       # Pest, against complyrobin_test
+composer test       # Pest in parallel, against complyrobin_test_test_N
+```
+
+```bash
+composer test:serial                                   # one process, against complyrobin_test (easier to debug)
+```
+
+```bash
+vendor/bin/pest --dirty                                # only tests for files you changed
+```
+
+```bash
+vendor/bin/pest tests/Feature/Credentials/RemindersTest.php   # one file
 ```
 
 CI also runs the whole suite **through a connection pooler**: PgBouncer in transaction mode, as on Laravel Cloud with pooling switched on. To do the same locally:

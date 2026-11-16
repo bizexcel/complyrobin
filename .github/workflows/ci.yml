@@ -73,6 +73,8 @@ jobs:
               -v migrator_password=migrator -v tenant_password=tenant -v platform_password=platform \
               -f database/sql/roles.sql
           done
+          # CI only, never production: the migrator creates the per-process databases of parallel test runs.
+          psql -v ON_ERROR_STOP=1 -d postgres -c "ALTER ROLE app_migrator CREATEDB"
 
       - name: Start PgBouncer
         if: matrix.db == 'pooled'

@@ -47,7 +47,7 @@ Every tenant table is created with `Schema::tenantTable()`, which forces RLS on 
 composer lint       # Pint
 composer analyse    # Larastan level 6
 composer refactor   # Rector dry run
-composer test       # Pest, against complyrobin_test
+composer test       # Pest in parallel, one test database per process
 composer audit
 ```
 

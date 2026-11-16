@@ -36,6 +36,8 @@
         <env name="DB_MIGRATOR_PASSWORD" value="migrator"/>
         <env name="DB_URL" value=""/>
         <env name="CHAT_CHANNELS" value="slack,teams,telegram"/>
+        <!-- Parallel runs: App\Core\Tenancy\Testing\ParallelDatabases gives each process its own database on all three connections. -->
+        <server name="LARAVEL_PARALLEL_TESTING_WITHOUT_DATABASES" value="1"/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>

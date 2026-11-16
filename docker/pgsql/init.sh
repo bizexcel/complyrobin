@@ -10,3 +10,6 @@ for db in complyrobin complyrobin_test; do
         -v migrator_password=migrator -v tenant_password=tenant -v platform_password=platform \
         -f /sql/roles.sql
 done
+
+# Local only (never in production): the migrator may create the per-process databases of parallel test runs.
+psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d postgres -c "ALTER ROLE app_migrator CREATEDB"

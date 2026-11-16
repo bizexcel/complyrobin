@@ -61,7 +61,8 @@
             "Composer\\Config::disableProcessTimeout",
             "@php artisan dev"
         ],
-        "test": "pest",
+        "test": "pest --parallel",
+        "test:serial": "pest",
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
             "@php artisan package:discover --ansi",

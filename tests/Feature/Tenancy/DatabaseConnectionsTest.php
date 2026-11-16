@@ -1,6 +1,8 @@
 <?php
 
+use App\Core\Tenancy\Testing\ParallelDatabases;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\ParallelTesting;
 
 it('runs on Postgres only, as three roles of the same database', function (): void {
     $connections = config('database.connections');
@@ -53,4 +55,19 @@ it('keeps tenant settings out of every database session: only TenantContext writ
         ->all();
 
     expect($offenders)->toBe(['app/Core/Tenancy/TenantContext.php']);
+});
+
+it('gives each parallel test process its own database, on all three connections', function (): void {
+    $token = ParallelTesting::token();
+
+    if ($token === false) {
+        $this->markTestSkipped('Runs only in parallel runs (composer test).');
+    }
+
+    $databases = collect(ParallelDatabases::CONNECTIONS)
+        ->map(fn (string $connection): string => (string) DB::connection($connection)->scalar('select current_database()'))
+        ->unique()->values()->all();
+
+    expect($databases)->toBe([config('database.connections.pgsql_migrator.database')])
+        ->and($databases[0])->toEndWith("_test_{$token}");
 });

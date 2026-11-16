@@ -2,6 +2,7 @@
 
 namespace App\Core\Tenancy;
 
+use App\Core\Tenancy\Testing\ParallelDatabases;
 use Closure;
 use Illuminate\Auth\Events\Authenticated;
 use Illuminate\Auth\Events\Logout;
@@ -37,6 +38,11 @@ class TenancyServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Parallel test runs: every role connection moves to the test process's own database.
+        if ($this->app->runningUnitTests()) {
+            ParallelDatabases::register();
+        }
+
         // Queued jobs run as the organisation they were dispatched in. Afterwards the organisation from before the job
         // comes back: none on a worker, or the surrounding one when a job runs synchronously inside Tenancy::run().
         Context::hydrated(function (Repository $context): void {
