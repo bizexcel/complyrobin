@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <style>.ink{fill:#0F172A} .eye{fill:#FFFFFF} @media (prefers-color-scheme: dark) { .ink{fill:#F8FAFC} .eye{fill:#0F172A} }</style>
+  <defs><clipPath id="robin-body"><circle cx="30" cy="37" r="21"/></clipPath></defs>
+  <path class="ink" d="M12.5 28.5 L3.5 17 L19.5 21.5 Z"/>
+  <circle cx="30" cy="37" r="21" class="ink"/>
+  <circle cx="43" cy="18" r="11" class="ink"/>
+  <circle cx="39" cy="41" r="13" fill="#F97316" clip-path="url(#robin-body)"/>
+  <path d="M39 41 V31.5 M39 41 H46" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round" fill="none"/>
+  <path class="ink" d="M52.5 14.5 L61 18.5 L52.5 22 Z"/>
+  <circle cx="46" cy="15.5" r="2.3" class="eye"/>
+</svg>

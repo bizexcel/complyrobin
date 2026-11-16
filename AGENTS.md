@@ -17,7 +17,7 @@ ComplyRobin is a multi-tenant SaaS by Bizexcel. It starts as a SaaS credentials 
 
 - **Tenant isolation.** Every tenant-owned table is created with `Schema::tenantTable()` and every tenant model uses `BelongsToOrganisation`. Work for an organisation runs inside `Tenancy::run($organisation, fn () => …)`; cross-tenant platform work uses `Tenancy::bypass('reason', fn () => …)`. Never query another organisation's rows, never trust a posted id without scoping it to the current organisation.
 - **Actions own writes.** Business rules and writes live in `Actions` classes; Filament resources call them. Domain code never imports `Filament\*` (only `User` implements Filament's `FilamentUser`).
-- **Ids.** UUIDv7 primary keys (`HasUuids`), never auto-increment, never shown to users — show the human `reference` (e.g. `INC-2026-0007`).
+- **Ids.** UUIDv7 primary keys (`HasUuids`), never auto-increment. Pages, exports and emails show the human `reference` (e.g. `INC-2026-0007`) or a name, never an id; page addresses may carry ids.
 - **Database roles.** The app runs as `app_tenant` (row-level security enforced). Migrations run as the owner: `php artisan migrate --database=pgsql_migrator`.
 - **Billing.** Write billing code exactly as Laravel Cashier would, with `stripe` replaced by `airwallex`.
 
