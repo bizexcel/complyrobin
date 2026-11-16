@@ -60,6 +60,6 @@ ALTER DEFAULT PRIVILEGES FOR ROLE app_migrator IN SCHEMA public
 ALTER DEFAULT PRIVILEGES FOR ROLE app_migrator IN SCHEMA public
     GRANT USAGE, SELECT ON SEQUENCES TO app_tenant, app_platform;
 
--- Tables that already exist (re-runs).
-GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO app_tenant, app_platform;
-GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO app_tenant, app_platform;
+-- No blanket GRANT … ON ALL TABLES here: this file runs on every deploy (`php artisan db:roles`), and that would undo
+-- what migrations deliberately revoke (login_attempts is unreadable to the app; the audit trail and the rotation log
+-- are append-only). The default privileges above cover every table the migrator creates; run this before migrating.

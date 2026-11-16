@@ -41,6 +41,16 @@ it('creates or updates the logins as the owner, passing passwords only through p
 
     $this->artisan('db:roles')->assertSuccessful()->expectsOutputToContain('up to date');
     $this->artisan('db:verify-roles')->assertSuccessful();
+
+    // Re-running it on every deploy must keep what migrations revoked.
+    $privileges = DB::connection('pgsql_migrator')->selectOne(<<<'SQL'
+        select has_table_privilege('app_tenant', 'login_attempts', 'SELECT') as reads_login_attempts,
+               has_table_privilege('app_tenant', 'activities', 'UPDATE') as rewrites_the_audit_trail,
+               has_table_privilege('app_tenant', 'credential_rotations', 'DELETE') as deletes_rotations,
+               has_table_privilege('app_tenant', 'credentials', 'SELECT') as reads_credentials
+        SQL);
+
+    expect((array) $privileges)->toBe(['reads_login_attempts' => false, 'rewrites_the_audit_trail' => false, 'deletes_rotations' => false, 'reads_credentials' => true]);
 });
 
 it('hands psql the passwords in its environment, never on its command line', function (): void {
