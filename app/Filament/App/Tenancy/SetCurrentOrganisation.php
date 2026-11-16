@@ -11,7 +11,8 @@ use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Runs the request as the organisation Filament identified from the URL (after checking membership), so model scopes
- * and row-level security both apply. Registered as persistent tenant middleware, so Livewire updates run it too.
+ * and row-level security both apply. Registered as persistent tenant middleware, so Livewire updates run it too. The
+ * organisation stays set until the request ends, because Livewire handles the component after this middleware returns.
  */
 final class SetCurrentOrganisation
 {
@@ -26,6 +27,8 @@ final class SetCurrentOrganisation
             return $next($request);
         }
 
-        return Tenancy::run($organisation, fn (): Response => $next($request));
+        Tenancy::setUntilTheRequestEnds($organisation);
+
+        return $next($request);
     }
 }

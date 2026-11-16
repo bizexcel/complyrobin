@@ -198,6 +198,47 @@ class TenantContext
     }
 
     /**
+     * Set the organisation for the rest of the current request, and clear it when the request ends. Only for the
+     * customer panel's tenant middleware.
+     *
+     * Not Tenancy::run(): after a page loads, every click is a Livewire update request, and Livewire re-runs a panel's
+     * middleware around an empty response and handles the component afterwards. Anything a middleware scopes to its
+     * $next call is over before the component runs.
+     */
+    public function setUntilTheRequestEnds(Organisation $organisation): void
+    {
+        $this->set($organisation);
+
+        app()->terminating(function (): void {
+            $this->forget();
+        });
+    }
+
+    /**
+     * Bypass for the rest of the current request, and stop when it ends. Only for the staff panel's middleware
+     * (RunAsPlatform), for the same reason as setUntilTheRequestEnds().
+     *
+     * @throws TenancyBypassDenied
+     */
+    public function bypassUntilTheRequestEnds(string $reason): void
+    {
+        if (! $this->bypassIsAllowed()) {
+            throw TenancyBypassDenied::because($reason);
+        }
+
+        Log::info('tenancy.bypass', ['reason' => $reason]);
+
+        $previousConnection = $this->db->getDefaultConnection();
+        $this->bypassing = true;
+        $this->db->setDefaultConnection(self::PLATFORM_CONNECTION);
+
+        app()->terminating(function () use ($previousConnection): void {
+            $this->bypassing = false;
+            $this->db->setDefaultConnection($previousConnection);
+        });
+    }
+
+    /**
      * Determine if tenant scoping is currently bypassed.
      */
     public function isBypassing(): bool

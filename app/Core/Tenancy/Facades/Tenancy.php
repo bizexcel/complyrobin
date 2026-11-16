@@ -17,6 +17,8 @@ use Illuminate\Support\Facades\Facade;
  * @method static void each(\Closure $callback)
  * @method static bool isBypassing()
  * @method static void allowBypassUsing(\Closure|null $callback)
+ * @method static void setUntilTheRequestEnds(\App\Core\Organisations\Models\Organisation $organisation)
+ * @method static void bypassUntilTheRequestEnds(string $reason)
  *
  * @see TenantContext
  */

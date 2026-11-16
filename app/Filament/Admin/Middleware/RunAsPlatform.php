@@ -13,6 +13,8 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * Staff work across organisations: each staff-panel request runs inside a tenancy bypass, on the platform connection.
  * Bypass is allowed only while a signed-in staff member's request runs, and the permission ends with the request.
+ * Both last until the request ends, not only while this middleware runs: Livewire handles a component after the
+ * middleware has returned.
  */
 final class RunAsPlatform
 {
@@ -25,11 +27,9 @@ final class RunAsPlatform
         abort_unless($user instanceof User && $user->platform_role instanceof PlatformRole, 403);
 
         Tenancy::allowBypassUsing(fn (): bool => true);
+        app()->terminating(fn () => Tenancy::allowBypassUsing(null));
+        Tenancy::bypassUntilTheRequestEnds("staff panel: {$request->method()} {$request->path()}");
 
-        try {
-            return Tenancy::bypass("staff panel: {$request->method()} {$request->path()}", fn (): Response => $next($request));
-        } finally {
-            Tenancy::allowBypassUsing(null);
-        }
+        return $next($request);
     }
 }
