@@ -46,14 +46,16 @@ return [
 
     'connections' => [
 
+        // The app's own login (app_tenant). Deliberately not DB_USERNAME/DB_PASSWORD: Laravel Cloud injects the
+        // database owner there, which bypasses row-level security, and `php artisan db:roles` needs it as the owner.
+        // No URL either, so an injected connection string can never swap the login.
         'pgsql' => [
             'driver' => 'pgsql',
-            'url' => env('DB_URL'),
             'host' => env('DB_HOST', '127.0.0.1'),
             'port' => env('DB_PORT', '5432'),
             'database' => env('DB_DATABASE', 'complyrobin'),
-            'username' => env('DB_USERNAME', 'app_tenant'),
-            'password' => env('DB_PASSWORD', ''),
+            'username' => env('DB_TENANT_USERNAME', 'app_tenant'),
+            'password' => env('DB_TENANT_PASSWORD', ''),
             'charset' => env('DB_CHARSET', 'utf8'),
             'prefix' => '',
             'prefix_indexes' => true,
@@ -98,6 +100,15 @@ return [
             'direct' => $directEndpoint ?: null,
         ],
 
+    ],
+
+    /*
+    | The database owner, as Laravel Cloud injects it (DB_USERNAME/DB_PASSWORD). Never a connection the app uses: only
+    | `php artisan db:roles` logs in with it, to create and update the three logins above (database/sql/roles.sql).
+    */
+    'owner' => [
+        'username' => env('DB_USERNAME'),
+        'password' => env('DB_PASSWORD'),
     ],
 
     /*

@@ -20,9 +20,11 @@ It also applies `database/sql/roles.sql`, which creates three logins (the passwo
 
 | Login | Password | Used by |
 |---|---|---|
-| `app_tenant` | `tenant` | the app (`DB_USERNAME`); row-level security applies |
+| `app_tenant` | `tenant` | the app (`DB_TENANT_*`); row-level security applies |
 | `app_platform` | `platform` | staff work across organisations (`DB_PLATFORM_*`) |
 | `app_migrator` | `migrator` | owns the tables; migrations and seeders (`DB_MIGRATOR_*`) |
+
+`DB_USERNAME`/`DB_PASSWORD` are the database owner (`postgres` locally). Only `php artisan db:roles` uses them, to create or update these logins, which the container has already done for you.
 
 ## 2. Install and migrate
 ```bash

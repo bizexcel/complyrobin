@@ -19,33 +19,31 @@ This guide covers what to create in Laravel Cloud for ComplyRobin, what to set, 
 1. **Application:** create it from `bizexcel/complyrobin` in Singapore, with PHP 8.5 (General Settings → Runtime).
 2. **Database:** add a **Serverless Postgres 17** database in Singapore and attach it to the environment.
    - Cloud injects `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME` and `DB_PASSWORD`. That login is the database **owner**.
-   - Copy the owner credentials from **View credentials**: you need them once, in step 2.
+   - **Leave `DB_USERNAME` and `DB_PASSWORD` as Cloud injects them.** ComplyRobin never runs as the owner. It uses the owner only to create its own logins on each deploy (step 2), and reads its own login from `DB_TENANT_*`.
 
-## 2. Create the three database logins (once per database)
+## 2. The three database logins (automatic on every deploy)
 ComplyRobin never runs as the database owner, because the owner bypasses the row-level security that keeps organisations apart. It uses three logins instead:
 
-| Login | Used for | Row-level security |
-|---|---|---|
-| `app_tenant` | the app and its jobs | **applies** |
-| `app_platform` | staff work across organisations | bypassed |
-| `app_migrator` | migrations and seeders; owns the tables | bypassed |
+| Login | Used for | Row-level security | Its variables |
+|---|---|---|---|
+| `app_tenant` | the app and its jobs | **applies** | `DB_TENANT_USERNAME`, `DB_TENANT_PASSWORD` |
+| `app_platform` | staff work across organisations | bypassed | `DB_PLATFORM_USERNAME`, `DB_PLATFORM_PASSWORD` |
+| `app_migrator` | migrations and seeders; owns the tables | bypassed | `DB_MIGRATOR_USERNAME`, `DB_MIGRATOR_PASSWORD` |
 
-`database/sql/roles.sql` creates them, and it is safe to run again.
+You don't create them by hand. Every deploy runs `php artisan app:deploy` (step 5), which starts with two commands:
+- **`db:roles`** logs in as the owner (the injected `DB_USERNAME`/`DB_PASSWORD`) and applies `database/sql/roles.sql`:
+  - it creates the three logins if they're missing and sets their passwords from the three `*_PASSWORD` variables;
+  - the passwords reach `psql` only through its environment, never its command line;
+  - it is safe to run every time, so a changed password is picked up on the next deploy.
+- **`db:verify-roles`** stops the deploy if the app's login could bypass row-level security, or if the platform or migrator login couldn't do its job.
 
-1. **Generate passwords:** three strong passwords, e.g. with a password manager.
-2. **Run `roles.sql` as the owner.** From your machine with `psql`, using the owner credentials from **View credentials** (SSL is required):
+Before the first deploy, set the three passwords (step 3): strong ones from a password manager, kept in Secrets.
 
-   ```bash
-   psql "host=<host> port=5432 dbname=<database> user=<owner> sslmode=require" -v ON_ERROR_STOP=1 -v migrator_password='<migrator password>' -v tenant_password='<tenant password>' -v platform_password='<platform password>' -f database/sql/roles.sql
-   ```
-
-   `psql` asks for the owner's password. You can run the same thing from the environment's **Commands → Open console**, where `psql` is installed and the `DB_*` variables still hold the owner login. Avoid typing passwords into one-off commands, though: they stay in the command history.
-3. **Check the result:** `\du` in `psql` should list `app_migrator` and `app_platform` with "Bypass RLS", and `app_tenant` without it.
-4. **If `CREATE ROLE … BYPASSRLS` is refused,** stop. Cloud's docs don't yet say whether the owner may grant it, and this check is part of the Phase 3 deploy spike. Don't work around it by running the app as the owner.
+**If `CREATE ROLE … BYPASSRLS` is refused,** the deploy stops at `db:roles`. Cloud's docs don't yet say whether the owner may grant it, and the first deploy (or preview) answers that. Don't work around it by running the app as the owner.
 
 ## 3. Environment variables and secrets
 - **Where:** set variables in the environment's General Settings, and put passwords in **Secrets** (Org Settings → Secrets, then link them to the environment).
-- **Precedence:** a custom variable overrides a secret, which overrides an injected value. That is how `DB_USERNAME` becomes `app_tenant` even though Cloud injects the owner.
+- **Precedence:** a custom variable overrides a secret, which overrides an injected value. **Don't override `DB_USERNAME` or `DB_PASSWORD`**: they must stay the owner's, for `db:roles`.
 - **Redeploy** after any change.
 
 | Variable | Value | Notes |
@@ -55,8 +53,8 @@ ComplyRobin never runs as the database owner, because the owner bypasses the row
 | `APP_DEBUG` | `false` | |
 | `APP_URL` | `https://app.complyrobin.com` | Used in reminder and invitation links. |
 | `APP_KEY` | secret | If Cloud hasn't set one: run `php artisan key:generate --show` locally and store the result. Never change it later: it decrypts saved channel settings. |
-| `DB_USERNAME` | `app_tenant` | Overrides the injected owner. |
-| `DB_PASSWORD` | secret | The `app_tenant` password from step 2. |
+| `DB_TENANT_USERNAME` | `app_tenant` | The app's own login. |
+| `DB_TENANT_PASSWORD` | secret | |
 | `DB_PLATFORM_USERNAME` | `app_platform` | |
 | `DB_PLATFORM_PASSWORD` | secret | |
 | `DB_MIGRATOR_USERNAME` | `app_migrator` | |
@@ -118,25 +116,19 @@ php artisan optimize
 php artisan filament:optimize
 ```
 
-**Deploy commands** (each one is safe to repeat):
+**Deploy command** (one, for production and every preview alike; safe to repeat):
 ```bash
-php artisan migrate --database=pgsql_migrator --force
+php artisan app:deploy
 ```
 
-```bash
-php artisan db:seed --class=PermissionSeeder --database=pgsql_migrator --force
-```
+It runs, in order, and stops at the first failure:
+1. `db:roles`: the three logins (step 2).
+2. `db:verify-roles`.
+3. `migrate --database=pgsql_migrator --force`. Migrations run as `app_migrator`, the owner login; it is not a different database.
+4. `PermissionSeeder` (the code-defined permissions) and `VendorSeeder` (the vendor catalogue).
+5. `access:sync-system-roles`, which gives existing organisations' system roles any new permissions.
+6. In a preview only, `PreviewSeeder` (the demo organisation).
 
-```bash
-php artisan db:seed --class=VendorSeeder --database=pgsql_migrator --force
-```
-
-```bash
-php artisan access:sync-system-roles
-```
-
-- `--database=pgsql_migrator` runs migrations as the owner login `app_migrator`. It is not a different database: everything is Postgres.
-- `PermissionSeeder` writes the code-defined permissions. `VendorSeeder` refreshes the vendor catalogue. `access:sync-system-roles` gives existing organisations' system roles any new permissions.
 - Don't add `queue:restart`, `optimize:clear` or `storage:link`. Cloud restarts workers itself, and deploy-time file changes aren't kept.
 
 ## 6. Domain, first deploy and first staff user
@@ -151,6 +143,36 @@ php artisan access:sync-system-roles
 
    `/admin` is then the staff panel, where you grant Team or Enterprise (Organisations → **Grant module**) until billing ships.
 
+## Preview environments (one per pull request)
+- **What they are:** Laravel Cloud can create an isolated copy of the app for every pull request into `main`, with its own database, cache, bucket and queue. They scale to zero and are deleted when the pull request is merged or closed. A new database only has the owner login, so `app:deploy` creates the three logins in it, and previews need no manual setup.
+- **Where to set it up:** in the **production** environment, under **Settings → Preview environments → New automation**:
+  - **Rules:** auto-deploy on creation; delete on merge or close.
+  - **Replication:** leave the defaults (new compute, database, cache and bucket, each scaling to zero).
+  - **HTTP basic authentication:** on (Growth plan). It keeps preview links private and stops bots waking them.
+- **Variables:** previews don't inherit production's variables. Cloud fills in `APP_KEY`, and injects each preview's own `DB_*` (owner), `REDIS_*`, storage settings and `APP_URL`; don't override those. Set these on the automation:
+
+  | Variable | Value | Notes |
+  |---|---|---|
+  | `APP_ENV` | `preview` | Turns on the demo data. |
+  | `APP_DEBUG` | `false` | |
+  | `DB_TENANT_USERNAME` / `DB_PLATFORM_USERNAME` / `DB_MIGRATOR_USERNAME` | `app_tenant` / `app_platform` / `app_migrator` | |
+  | `DB_TENANT_PASSWORD` / `DB_PLATFORM_PASSWORD` / `DB_MIGRATOR_PASSWORD` | secrets | **Different from production's.** All previews share them. |
+  | `DB_SSLMODE` | `require` | |
+  | `DB_POOLING` | `true` | |
+  | `SESSION_DRIVER` | `redis` | |
+  | `SESSION_SECURE_COOKIE` | `true` | |
+  | `MAIL_MAILER` | `log` | Previews never send real email. |
+  | `PREVIEW_PASSWORD` | secret, 12+ characters | The demo owner's password. |
+  | `PREVIEW_MFA_SECRET` | secret | Generate with `php artisan preview:mfa-secret` and add it to your authenticator app by hand ("enter a setup key"). |
+  | `PREVIEW_OWNER_EMAIL` | optional | Defaults to `demo@complyrobin.test`. |
+
+  Leave out `CHAT_CHANNELS`, `TELEGRAM_BOT_TOKEN`, Nightwatch and, later, live billing keys.
+- **Signing in to a preview:**
+  1. Open the link Cloud posts on the pull request and pass the basic authentication.
+  2. Sign in as `demo@complyrobin.test` with `PREVIEW_PASSWORD`, then the code from your authenticator app.
+  3. The demo owner sees **Acme Preview** on Team, with people, applications and credentials that are overdue, due soon, rotated and without an owner. They are also staff, so `/admin` works.
+- **Deploy commands:** previews run the same `php artisan app:deploy`. The demo organisation is only added when `APP_ENV=preview`, and only once.
+
 ## Connection pooling
 - **Turning it on:** set `DB_POOLING=true` and keep the injected `DB_HOST` as it is. Laravel 13's Cloud integration then:
   - sends the app, the platform connection and the workers through Cloud's pooler (PgBouncer, transaction mode);
@@ -164,8 +186,8 @@ php artisan access:sync-system-roles
 - **Public files:** add a public bucket with the disk name `public`.
 - **Billing:** Airwallex settings come with Phase 3.
 
-## Still to confirm on a staging environment
-These are part of the Phase 3 deploy spike:
-- Can the owner create `app_migrator` and `app_platform` with `BYPASSRLS`, and can they log in through the pooler host?
+## Still to confirm on the first deploy or preview
+These are part of the Phase 3 deploy spike. The first preview is a safe place to find out:
+- Can the owner create `app_migrator` and `app_platform` with `BYPASSRLS` (does `db:roles` pass), and can they log in through the pooler host?
 - Do migrations go to the direct host with `DB_POOLING=true` (`php artisan migrate:status --database=pgsql_migrator`), and does the full app work pooled?
 - Do the queued jobs (reports, imports, reminder delivery) run on the managed queue within the Flex limits?

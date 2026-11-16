@@ -90,6 +90,7 @@ jobs:
           cp .env.example .env
           php artisan key:generate
           php artisan migrate:fresh --seed --database=pgsql_migrator --force
+          php artisan db:verify-roles
 
       - name: Code style (Pint)
         if: matrix.db == 'direct'

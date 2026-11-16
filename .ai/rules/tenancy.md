@@ -34,3 +34,7 @@ Row-level security would silently ignore a change to another organisation, so `O
 
 ## Tests prove isolation
 Any change here keeps `tests/Feature/Tenancy` green; add a case for every new way data can cross tenants.
+
+## Database logins
+The app's own connection (`pgsql`) logs in with `DB_TENANT_USERNAME`/`DB_TENANT_PASSWORD`, never `DB_USERNAME`/`DB_PASSWORD`, and has no URL. On Laravel Cloud those two hold the injected database **owner**, which bypasses row-level security. They're read only into `database.owner`, for `php artisan db:roles`, which applies `database/sql/roles.sql` as the owner on every deploy, so each environment and each preview creates its own logins. `php artisan db:verify-roles` then fails the deploy if `pgsql` could bypass row-level security or own the data, or if the platform or migrator login couldn't do its job. Both run first in `php artisan app:deploy`.
+

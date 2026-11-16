@@ -28,13 +28,14 @@
         <env name="CACHE_STORE" value="array"/>
         <env name="DB_CONNECTION" value="pgsql"/>
         <env name="DB_DATABASE" value="complyrobin_test"/>
-        <env name="DB_USERNAME" value="app_tenant"/>
-        <env name="DB_PASSWORD" value="tenant"/>
+        <env name="DB_TENANT_USERNAME" value="app_tenant"/>
+        <env name="DB_TENANT_PASSWORD" value="tenant"/>
+        <env name="DB_USERNAME" value="postgres"/>
+        <env name="DB_PASSWORD" value="postgres"/>
         <env name="DB_PLATFORM_USERNAME" value="app_platform"/>
         <env name="DB_PLATFORM_PASSWORD" value="platform"/>
         <env name="DB_MIGRATOR_USERNAME" value="app_migrator"/>
         <env name="DB_MIGRATOR_PASSWORD" value="migrator"/>
-        <env name="DB_URL" value=""/>
         <env name="CHAT_CHANNELS" value="slack,teams,telegram"/>
         <!-- Parallel runs: App\Core\Tenancy\Testing\ParallelDatabases gives each process its own database on all three connections. -->
         <server name="LARAVEL_PARALLEL_TESTING_WITHOUT_DATABASES" value="1"/>

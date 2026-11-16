@@ -1,6 +1,26 @@
 -- Database roles for ComplyRobin. Idempotent: safe to run on every deploy.
--- Run as a superuser (or a role allowed to create roles), passing passwords as psql variables:
+-- Run as a superuser (or a role allowed to create roles). The passwords come from the environment variables
+-- DB_MIGRATOR_PASSWORD, DB_TENANT_PASSWORD and DB_PLATFORM_PASSWORD (as `php artisan db:roles` runs it on every
+-- deploy), or from psql variables:
 --   psql -v migrator_password=… -v tenant_password=… -v platform_password=… -d complyrobin -f database/sql/roles.sql
+\getenv migrator_password DB_MIGRATOR_PASSWORD
+\getenv tenant_password DB_TENANT_PASSWORD
+\getenv platform_password DB_PLATFORM_PASSWORD
+\if :{?migrator_password}
+\else
+    \warn 'roles.sql: set DB_MIGRATOR_PASSWORD (or -v migrator_password=…)'
+    \quit
+\endif
+\if :{?tenant_password}
+\else
+    \warn 'roles.sql: set DB_TENANT_PASSWORD (or -v tenant_password=…)'
+    \quit
+\endif
+\if :{?platform_password}
+\else
+    \warn 'roles.sql: set DB_PLATFORM_PASSWORD (or -v platform_password=…)'
+    \quit
+\endif
 --
 --   app_migrator  owns the schema; runs migrations and seeders (bypasses RLS)
 --   app_tenant    the application; every tenant table is filtered by row-level security
