@@ -110,3 +110,35 @@ jobs:
       - name: Security audit
         if: matrix.db == 'direct'
         run: composer audit
+
+      # A new Laravel Cloud database (and every preview's) has only its owner, which is not a superuser. Deploy to one
+      # like it from nothing, then again, then as a preview, so `php artisan app:deploy` keeps working there.
+      - name: Deploy rehearsal (empty database, non-superuser owner)
+        if: matrix.db == 'direct'
+        env:
+          DB_PORT: 5544
+          DB_DATABASE: main
+          DB_USERNAME: cloud_owner
+          DB_PASSWORD: owner-rehearsal
+          DB_TENANT_PASSWORD: tenant-rehearsal
+          DB_PLATFORM_PASSWORD: platform-rehearsal
+          DB_MIGRATOR_PASSWORD: migrator-rehearsal
+          CACHE_STORE: array
+          PREVIEW_PASSWORD: preview-rehearsal
+        run: |
+          docker run -d --name cloud-like -e POSTGRES_PASSWORD=postgres -p 5544:5432 postgres:17
+          for _ in $(seq 1 30); do pg_isready -p 5544 && break; sleep 1; done
+          psql -p 5544 -v ON_ERROR_STOP=1 -d postgres \
+            -c "CREATE ROLE cloud_owner LOGIN CREATEROLE CREATEDB BYPASSRLS PASSWORD 'owner-rehearsal'" \
+            -c "CREATE DATABASE main OWNER cloud_owner" -c "CREATE DATABASE preview OWNER cloud_owner"
+
+          APP_ENV=production php artisan app:deploy
+          APP_ENV=production php artisan app:deploy
+          # What migrations revoke from the app must survive a second deploy; its own tables stay readable.
+          psql -p 5544 -d main -Atc "select has_table_privilege('app_tenant', 'login_attempts', 'SELECT'), has_table_privilege('app_tenant', 'activities', 'UPDATE'), has_table_privilege('app_tenant', 'credentials', 'SELECT')" | grep -qx "f|f|t"
+
+          PREVIEW_MFA_SECRET="$(php artisan preview:mfa-secret | tail -1)"
+          export PREVIEW_MFA_SECRET
+          APP_ENV=preview DB_DATABASE=preview php artisan app:deploy
+          APP_ENV=preview DB_DATABASE=preview php artisan app:deploy
+          psql -p 5544 -d preview -Atc "select count(*) from organisations where slug = 'acme-preview'" | grep -qx "1"

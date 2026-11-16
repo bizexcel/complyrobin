@@ -184,7 +184,7 @@ docker exec cloud-like psql -U postgres -c "CREATE ROLE cloud_owner LOGIN CREATE
 APP_ENV=production DB_PORT=5544 DB_DATABASE=main DB_USERNAME=cloud_owner DB_PASSWORD=owner CACHE_STORE=array php artisan app:deploy
 ```
 
-Run the last command twice: the second run should change nothing. Then remove the container:
+Run the last command twice: the second run should change nothing. CI does the same on every push, and then deploys once more as a preview. Then remove the container:
 
 ```bash
 docker rm -f cloud-like
