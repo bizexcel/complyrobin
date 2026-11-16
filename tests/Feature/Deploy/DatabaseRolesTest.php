@@ -53,6 +53,17 @@ it('creates or updates the logins as the owner, passing passwords only through p
     expect((array) $privileges)->toBe(['reads_login_attempts' => false, 'rewrites_the_audit_trail' => false, 'deletes_rotations' => false, 'reads_credentials' => true]);
 });
 
+it('refuses to run when a login has no password, as Postgres would lock that login out', function (): void {
+    Process::fake();
+    config(['database.connections.pgsql.password' => '', 'database.connections.pgsql_platform.password' => null]);
+
+    $this->artisan('db:roles')
+        ->assertFailed()
+        ->expectsOutputToContain('Set DB_TENANT_PASSWORD, DB_PLATFORM_PASSWORD');
+
+    Process::assertNothingRan();
+});
+
 it('hands psql the passwords in its environment, never on its command line', function (): void {
     Process::fake();
 

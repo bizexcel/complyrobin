@@ -27,6 +27,19 @@ class ApplyDatabaseRoles extends Command
             return self::FAILURE;
         }
 
+        $passwords = [
+            'DB_MIGRATOR_PASSWORD' => (string) config('database.connections.pgsql_migrator.password'),
+            'DB_TENANT_PASSWORD' => (string) ($tenant['password'] ?? ''),
+            'DB_PLATFORM_PASSWORD' => (string) config('database.connections.pgsql_platform.password'),
+        ];
+
+        // Postgres would accept an empty password by removing the login's password, which locks the app out.
+        if (($missing = array_keys(array_filter($passwords, blank(...)))) !== []) {
+            $this->components->error('Set '.implode(', ', $missing).': every database login needs a password.');
+
+            return self::FAILURE;
+        }
+
         // The direct endpoint when the app goes through a pooler.
         $host = data_get($tenant, 'direct.host') ?: $tenant['host'];
         $port = data_get($tenant, 'direct.port') ?: $tenant['port'];
@@ -38,12 +51,12 @@ class ApplyDatabaseRoles extends Command
             'PGUSER' => (string) $owner['username'],
             'PGPASSWORD' => (string) ($owner['password'] ?? ''),
             'PGSSLMODE' => (string) ($tenant['sslmode'] ?? 'prefer'),
-            'DB_MIGRATOR_PASSWORD' => (string) config('database.connections.pgsql_migrator.password'),
-            'DB_TENANT_PASSWORD' => (string) $tenant['password'],
-            'DB_PLATFORM_PASSWORD' => (string) config('database.connections.pgsql_platform.password'),
+            ...$passwords,
         ])->run(['psql', '--no-psqlrc', '-v', 'ON_ERROR_STOP=1', '--quiet', '-f', database_path('sql/roles.sql')]);
 
-        if ($result->failed() || str_contains($result->errorOutput(), 'roles.sql:')) {
+        // psql exits with an error for a failed statement. A missing password makes roles.sql warn ("roles.sql: set …")
+        // and quit cleanly, so look for that too. Notices from Postgres are not failures.
+        if ($result->failed() || preg_match('/^roles\.sql: /m', $result->errorOutput()) === 1) {
             $this->components->error('Could not apply the database logins: '.trim($result->errorOutput() ?: $result->output()));
 
             return self::FAILURE;

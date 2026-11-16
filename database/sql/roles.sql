@@ -1,5 +1,6 @@
 -- Database roles for ComplyRobin. Idempotent: safe to run on every deploy.
--- Run as a superuser (or a role allowed to create roles). The passwords come from the environment variables
+-- Run as the database owner: a superuser (local, CI) or a managed database's owner, which must be allowed to create
+-- roles and to bypass row-level security itself (it can't hand out what it lacks). The passwords come from the environment variables
 -- DB_MIGRATOR_PASSWORD, DB_TENANT_PASSWORD and DB_PLATFORM_PASSWORD (as `php artisan db:roles` runs it on every
 -- deploy), or from psql variables:
 --   psql -v migrator_password=… -v tenant_password=… -v platform_password=… -d complyrobin -f database/sql/roles.sql
@@ -19,6 +20,12 @@
 \if :{?platform_password}
 \else
     \warn 'roles.sql: set DB_PLATFORM_PASSWORD (or -v platform_password=…)'
+    \quit
+\endif
+-- An empty password would remove the login's password and lock the app out.
+SELECT :'migrator_password' = '' OR :'tenant_password' = '' OR :'platform_password' = '' AS a_password_is_empty \gset
+\if :a_password_is_empty
+    \warn 'roles.sql: set DB_MIGRATOR_PASSWORD, DB_TENANT_PASSWORD and DB_PLATFORM_PASSWORD: none may be empty'
     \quit
 \endif
 --
@@ -54,7 +61,16 @@ SELECT format('GRANT CONNECT ON DATABASE %I TO app_migrator, app_tenant, app_pla
 GRANT USAGE, CREATE ON SCHEMA public TO app_migrator;
 GRANT USAGE ON SCHEMA public TO app_tenant, app_platform;
 
--- Tables and sequences created later by app_migrator are usable by the app roles.
+-- Tables and sequences created later by app_migrator are usable by the app roles. Setting another role's default
+-- privileges needs that role's privileges: a superuser has them (local, CI), but a managed database's owner
+-- (Laravel Cloud) is not a superuser, so it joins app_migrator first. It may, having created the role.
+DO $$
+BEGIN
+    IF NOT pg_has_role(current_user, 'app_migrator', 'USAGE') THEN
+        EXECUTE format('GRANT app_migrator TO %I WITH INHERIT TRUE, SET TRUE', current_user);
+    END IF;
+END
+$$;
 ALTER DEFAULT PRIVILEGES FOR ROLE app_migrator IN SCHEMA public
     GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO app_tenant, app_platform;
 ALTER DEFAULT PRIVILEGES FOR ROLE app_migrator IN SCHEMA public

@@ -53,7 +53,7 @@ npm install && npm run build
 
 `--database=pgsql_migrator` picks the **owner login**, not a different database: the app's own login can't create tables. If you forget the flag, the migration stops with "permission denied" and nothing changes.
 
-The seeder adds the permissions, the vendor catalogue and a test user.
+The seeder adds the permissions, the vendor catalogue and, on your machine only (`APP_ENV=local`), a test user. It is safe to run again.
 
 ## 3. Run it
 ```bash
@@ -65,8 +65,9 @@ This starts the web server (http://localhost:8000), a queue listener, a log view
 The queue matters: evidence reports, CSV imports and reminder delivery run as queued jobs.
 
 - **Sign in** at http://localhost:8000/login as `test@example.com`, password `password`.
-- **Codes and links:** every sign-in needs a second factor. The test user gets an email code, and locally mail goes to the log (`MAIL_MAILER=log`). Find the code in `storage/logs/laravel.log`, or in the log pane of `composer dev`. Invitation and verification emails land there too.
-- **First sign-in:** sign up or sign in, then create an organisation. You'll land on `/{your-slug}`.
+- **Codes and links:** every sign-in needs a second factor. The test user gets an email code, and locally mail goes to the log (`MAIL_MAILER=log`). Find the line "Your sign-in code is: …" in `storage/logs/laravel.log`, or in the log pane of `composer dev`. Type it in and the form continues by itself. Invitation and verification emails land there too.
+- **The code is sent by a queued job,** so it only appears while the queue is running. `composer dev` runs it. If you start the app with `php artisan serve` alone, also run `php artisan queue:work` in a second terminal.
+- **First sign-in:** after the code you are asked to create an organisation (`/new`). Give it a name and you land on its dashboard at `/{your-slug}`.
 - **Staff panel:** it is at http://localhost:8000/admin and needs `platform_role = admin`. Give it to yourself with:
 
 ```bash
@@ -96,6 +97,8 @@ Reminders only go out between 09:00 and 18:00 in each organisation's time zone.
 | `CHAT_CHANNELS=slack,teams,telegram` | Offers team chat channels (empty by default: email, in-app and calendar only). |
 | `TELEGRAM_BOT_TOKEN` | Needed as well for Telegram. |
 | `MEDIA_DISK` | A separate private disk for files. Empty uses `FILESYSTEM_DISK`. |
+
+Octane is installed but not needed locally: `composer dev` uses PHP's built-in server. See [Deploying to Laravel Cloud](laravel-cloud.md) for when it matters.
 
 ## Tests and checks
 Tests run against a real Postgres database, `complyrobin_test`, never SQLite. What they protect only exists in Postgres:
@@ -179,6 +182,14 @@ php artisan boost:update
 ```
 
 ## Troubleshooting
+- **No sign-in code in the log:** the queue isn't running. Use `composer dev`, or run `php artisan queue:work` beside `php artisan serve`.
+- **Port 5432 is already in use:** start Postgres on another port and tell the app:
+
+```bash
+FORWARD_DB_PORT=5433 docker compose up -d pgsql
+```
+
+  Then set `DB_PORT=5433` in `.env`.
 - **"permission denied for schema public"** when migrating: add `--database=pgsql_migrator`.
 - **"Unable to locate file in Vite manifest":** run `npm run build`, or keep `composer dev` running.
 - **The roles are missing** (an old Postgres volume): re-apply them with:

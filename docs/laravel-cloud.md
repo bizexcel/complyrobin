@@ -2,12 +2,14 @@
 
 This guide covers what to create in Laravel Cloud for ComplyRobin, what to set, and in which order. It was checked against the [Laravel Cloud docs](https://laravel.com/cloud/docs) on 2026-11-16. Cloud changes often, so if a screen looks different, the docs win.
 
+The deploy command has been rehearsed from nothing against an empty Postgres 17 whose owner is not a superuser, as on Cloud ([rehearse it yourself](#rehearse-the-deploy-locally-optional)). It has not yet run on Laravel Cloud itself: see [what the first deploy still has to confirm](#still-to-confirm-on-the-first-deploy-or-preview).
+
 ## What you need
 | Resource | What to pick | Why ComplyRobin needs it |
 |---|---|---|
 | **Application** | Repository `bizexcel/complyrobin`, branch `main`, region **Singapore (ap-southeast-1)**, PHP **8.5** | The app. Create a `production` environment, and a `staging` one to try changes first. |
 | **App cluster** | Web compute, with the **Scheduler** toggle **on** | Serves `/{organisation}` and `/admin`, and runs the scheduled work (below). |
-| **Serverless Postgres** | Version **17**, region Singapore | All data. Pick 17 to match local and CI. Moving to 18 means updating `compose.yaml` and CI first. |
+| **Serverless Postgres** | Version **17**, region Singapore, **one cluster per environment** | All data. Pick 17 to match local and CI (Cloud offers 18 by default). Moving to 18 means updating `compose.yaml` and CI first. |
 | **Laravel Valkey** (Cache) | One cache | Cache, sessions, rate limits and locks. The scheduler's `onOneServer` locks need a shared cache. |
 | **Object Storage** | One **private** bucket, attached as the **default disk** | Rotation evidence, evidence reports and spreadsheets waiting to be imported. A public bucket comes later, only when something public ships. |
 | **Managed queue** | Flex to start | Evidence reports, CSV imports and reminder delivery run as queued jobs. |
@@ -20,6 +22,7 @@ This guide covers what to create in Laravel Cloud for ComplyRobin, what to set, 
 2. **Database:** add a **Serverless Postgres 17** database in Singapore and attach it to the environment.
    - Cloud injects `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME` and `DB_PASSWORD`. That login is the database **owner**.
    - **Leave `DB_USERNAME` and `DB_PASSWORD` as Cloud injects them.** ComplyRobin never runs as the owner. It uses the owner only to create its own logins on each deploy (step 2), and reads its own login from `DB_TENANT_*`.
+   - **Give every environment its own database cluster.** Logins belong to a cluster, not to a database inside it. If staging shared production's cluster, they would share the three logins, each deploy would reset the other's passwords, and staging's app could connect to production's data. Previews already get a cluster each.
 
 ## 2. The three database logins (automatic on every deploy)
 ComplyRobin never runs as the database owner, because the owner bypasses the row-level security that keeps organisations apart. It uses three logins instead:
@@ -39,7 +42,9 @@ You don't create them by hand. Every deploy runs `php artisan app:deploy` (step 
 
 Before the first deploy, set the three passwords (step 3): strong ones from a password manager, kept in Secrets.
 
-**If `CREATE ROLE … BYPASSRLS` is refused,** the deploy stops at `db:roles`. Cloud's docs don't yet say whether the owner may grant it, and the first deploy (or preview) answers that. Don't work around it by running the app as the owner.
+**The owner must itself be allowed to bypass row-level security.** Postgres only lets a login hand out what it has.
+- **What to expect:** Laravel Serverless Postgres runs on Neon, whose docs say its administrator logins can create roles and bypass row-level security. A rehearsal with an owner like that passes.
+- **If it isn't so on Cloud,** the first deploy stops at `db:roles` with "Only roles with the BYPASSRLS attribute may create roles with the BYPASSRLS attribute". Nothing has been migrated at that point. Don't work around it by running the app as the owner: ask Laravel Cloud support.
 
 ## 3. Environment variables and secrets
 - **Where:** set variables in the environment's General Settings, and put passwords in **Secrets** (Org Settings → Secrets, then link them to the environment).
@@ -133,7 +138,14 @@ It runs, in order, and stops at the first failure:
 
 ## 6. Domain, first deploy and first staff user
 1. **Domain:** add `app.complyrobin.com` under Network settings, then add the DNS records Cloud shows. SSL is automatic.
-2. **Deploy**, and check that the migrations and seeders ran.
+2. **Deploy**, and read the deploy log. A good first deploy shows, in this order:
+   - "Database logins are up to date."
+   - "Every connection logs in with the right role."
+   - the migrations, each marked DONE;
+   - `PermissionSeeder` and `VendorSeeder`, each marked DONE;
+   - "Synced system roles for 0 organisations."
+
+   If it stops, the log says "Deploy stopped: … failed." under the reason. See [When a deploy stops](#when-a-deploy-stops).
 3. **Sign up** at `https://app.complyrobin.com/register`, verify your email, and set up multi-factor authentication.
 4. **Make yourself staff** from **Commands → Open console**:
 
@@ -142,6 +154,41 @@ It runs, in order, and stops at the first failure:
    ```
 
    `/admin` is then the staff panel, where you grant Team or Enterprise (Organisations → **Grant module**) until billing ships.
+
+## When a deploy stops
+`php artisan app:deploy` stops at the first problem, before anything later runs. The message says which step:
+
+| Message in the deploy log | What it means | What to do |
+|---|---|---|
+| "Set DB_USERNAME and DB_PASSWORD to the database owner" | No database is attached, or those two were cleared. | Attach the database, and remove any custom `DB_USERNAME`/`DB_PASSWORD`. |
+| "Set DB_TENANT_PASSWORD…: every database login needs a password." | One of the three `*_PASSWORD` variables is missing or empty. | Add it (step 3) and redeploy. |
+| "Only roles with the BYPASSRLS attribute may create roles with the BYPASSRLS attribute" | The owner may not bypass row-level security (step 2). | Ask Laravel Cloud support. Don't run the app as the owner. |
+| "pgsql logs in as …, which bypasses row-level security" | `DB_TENANT_USERNAME` points at the owner or another privileged login. | Set it to `app_tenant`. |
+| "password authentication failed for user "app_…"" | A login's password variable was changed without a redeploy, or two environments share a cluster. | Redeploy; give each environment its own cluster. |
+| "Set PREVIEW_PASSWORD (12 characters or more) and PREVIEW_MFA_SECRET…" | A preview is missing its demo-account settings. | Add them to the preview automation. |
+
+Fixing the variable and redeploying is always safe: every step can be repeated.
+
+## Rehearse the deploy locally (optional)
+You can run the same deploy command against an empty Postgres whose owner is not a superuser, which is what a new Cloud database looks like. It needs Docker and `psql` on your machine, and a working [local setup](local-setup.md).
+
+```bash
+docker run -d --name cloud-like -e POSTGRES_PASSWORD=postgres -p 5544:5432 postgres:17
+```
+
+```bash
+docker exec cloud-like psql -U postgres -c "CREATE ROLE cloud_owner LOGIN CREATEROLE CREATEDB BYPASSRLS PASSWORD 'owner'" -c "CREATE DATABASE main OWNER cloud_owner"
+```
+
+```bash
+APP_ENV=production DB_PORT=5544 DB_DATABASE=main DB_USERNAME=cloud_owner DB_PASSWORD=owner CACHE_STORE=array php artisan app:deploy
+```
+
+Run the last command twice: the second run should change nothing. Then remove the container:
+
+```bash
+docker rm -f cloud-like
+```
 
 ## Preview environments (one per pull request)
 - **What they are:** Laravel Cloud can create an isolated copy of the app for every pull request into `main`, with its own database, cache, bucket and queue. They scale to zero and are deleted when the pull request is merged or closed. A new database only has the owner login, so `app:deploy` creates the three logins in it, and previews need no manual setup.
@@ -192,6 +239,7 @@ It runs, in order, and stops at the first failure:
 
 ## Still to confirm on the first deploy or preview
 These are part of the Phase 3 deploy spike. The first preview is a safe place to find out:
-- Can the owner create `app_migrator` and `app_platform` with `BYPASSRLS` (does `db:roles` pass), and can they log in through the pooler host?
+- Does `db:roles` pass, that is, may Cloud's owner create logins that bypass row-level security (step 2)? Locally it passes with an owner like Neon describes.
+- Can the three logins sign in through the pooler host?
 - Do migrations go to the direct host with `DB_POOLING=true` (`php artisan migrate:status --database=pgsql_migrator`), and does the full app work pooled?
 - Do the queued jobs (reports, imports, reminder delivery) run on the managed queue within the Flex limits?
