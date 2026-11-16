@@ -13,7 +13,15 @@ concurrency:
 
 jobs:
   test:
+    name: test (${{ matrix.db }})
     runs-on: ubuntu-latest
+
+    # direct: the app talks to Postgres. pooled: through PgBouncer in transaction mode with one server connection per
+    # role, as on Laravel Cloud with DB_POOLING=true; migrations still go direct.
+    strategy:
+      fail-fast: false
+      matrix:
+        db: [direct, pooled]
 
     services:
       postgres:
@@ -33,6 +41,10 @@ jobs:
       PGHOST: 127.0.0.1
       PGUSER: postgres
       PGPASSWORD: postgres
+      DB_PORT: ${{ matrix.db == 'pooled' && '6432' || '5432' }}
+      DB_DIRECT_HOST: ${{ matrix.db == 'pooled' && '127.0.0.1' || '' }}
+      DB_DIRECT_PORT: ${{ matrix.db == 'pooled' && '5432' || '' }}
+      DB_EXPECT_POOLER: ${{ matrix.db == 'pooled' && 'true' || '' }}
 
     steps:
       - uses: actions/checkout@v4
@@ -62,6 +74,15 @@ jobs:
               -f database/sql/roles.sql
           done
 
+      - name: Start PgBouncer
+        if: matrix.db == 'pooled'
+        run: |
+          docker run -d --name pgbouncer --add-host pgsql:host-gateway -p 6432:6432 \
+            -v "$GITHUB_WORKSPACE/docker/pgbouncer:/etc/pgbouncer:ro" edoburu/pgbouncer:v1.24.1-p1
+          for _ in $(seq 1 30); do pg_isready -h 127.0.0.1 -p 6432 && exit 0; sleep 1; done
+          docker logs pgbouncer
+          exit 1
+
       - name: Prepare application
         run: |
           cp .env.example .env
@@ -69,16 +90,20 @@ jobs:
           php artisan migrate:fresh --seed --database=pgsql_migrator --force
 
       - name: Code style (Pint)
+        if: matrix.db == 'direct'
         run: composer lint
 
       - name: Static analysis (Larastan)
+        if: matrix.db == 'direct'
         run: composer analyse
 
       - name: Refactoring check (Rector)
+        if: matrix.db == 'direct'
         run: composer refactor
 
       - name: Tests (Pest)
         run: composer test
 
       - name: Security audit
+        if: matrix.db == 'direct'
         run: composer audit

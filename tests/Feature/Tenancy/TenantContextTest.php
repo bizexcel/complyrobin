@@ -14,7 +14,7 @@ it('rejects invalid ids', function (string $id): void {
     Tenancy::set($id);
 })->with(['', 'abc', '123'])->throws(InvalidArgumentException::class);
 
-it('mirrors the tenant into the database session', function (): void {
+it('sends the tenant with every statement on the tenant connection', function (): void {
     $a = Organisation::factory()->create();
 
     Tenancy::set($a);

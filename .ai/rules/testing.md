@@ -14,5 +14,8 @@ Factories for tenant models run inside `Tenancy::run($organisation, fn () => Mod
 ## Isolation is tested for every tenant table
 `IsolationSuiteTest` checks every table with an `organisation_id`: another organisation sees none of its rows and can change or delete none, and nothing is visible without an organisation. Its coverage test fails until `populatedOrganisation()` puts a row in a new tenant table, so add one (through the real action where there is one) in the same change. Add cross-tenant cases for new resources and actions too. Billing tests use recorded Airwallex fixtures with `Http::preventStrayRequests()`.
 
+## Through a pooler too
+CI runs the suite twice: direct to Postgres, and through PgBouncer in transaction mode with one server connection per role (`docker/pgbouncer`, as on Laravel Cloud with pooling), with migrations going direct. Locally: `docker compose up -d pgbouncer`, then `DB_PORT=6432 DB_DIRECT_HOST=127.0.0.1 DB_DIRECT_PORT=5432 DB_EXPECT_POOLER=true composer test`. `PooledConnectionTest` runs only there. Two connections of one role share one server connection, so never hold a transaction open on one while using another.
+
 ## Arch tests discover classes from the classmap
 After adding classes, `composer dump-autoload` before running arch tests.

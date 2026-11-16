@@ -24,6 +24,11 @@ ALTER ROLE app_migrator WITH LOGIN BYPASSRLS PASSWORD :'migrator_password';
 ALTER ROLE app_tenant WITH LOGIN NOBYPASSRLS PASSWORD :'tenant_password';
 ALTER ROLE app_platform WITH LOGIN BYPASSRLS PASSWORD :'platform_password';
 
+-- The search path is a role setting, never a session SET: a connection pooler would share a session's settings.
+ALTER ROLE app_migrator SET search_path = public;
+ALTER ROLE app_tenant SET search_path = public;
+ALTER ROLE app_platform SET search_path = public;
+
 SELECT format('GRANT CONNECT ON DATABASE %I TO app_migrator, app_tenant, app_platform', current_database()) \gexec
 
 GRANT USAGE, CREATE ON SCHEMA public TO app_migrator;

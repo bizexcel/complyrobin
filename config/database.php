@@ -2,6 +2,19 @@
 
 use Illuminate\Support\Str;
 
+/*
+| Connection pooling. On Laravel Cloud, DB_POOLING=true sends every connection through the transaction pooler and
+| gives each a "direct" endpoint, which migrations (and `db`, `schema:dump`) use automatically. Locally and in CI
+| the same split is tested by pointing DB_HOST/DB_PORT at PgBouncer and DB_DIRECT_HOST/DB_DIRECT_PORT at Postgres.
+| Never set DB_DIRECT_* on Laravel Cloud: Cloud works out the direct host itself.
+|
+| No connection sets anything in its database session (a pooler would share it): the search path is a role setting
+| (database/sql/roles.sql) and the tenant travels with each statement (App\Core\Tenancy\TenantConnection).
+*/
+$directEndpoint = filled(env('DB_DIRECT_HOST'))
+    ? ['host' => env('DB_DIRECT_HOST'), 'port' => env('DB_DIRECT_PORT', '5432')]
+    : [];
+
 return [
 
     /*
@@ -44,8 +57,13 @@ return [
             'charset' => env('DB_CHARSET', 'utf8'),
             'prefix' => '',
             'prefix_indexes' => true,
-            'search_path' => 'public',
             'sslmode' => env('DB_SSLMODE', 'prefer'),
+            // TenantConnection prefixes every statement with the tenant, which only emulated prepares allow.
+            'options' => [PDO::ATTR_EMULATE_PREPARES => true],
+            'direct' => [
+                'options' => [PDO::ATTR_EMULATE_PREPARES => true],
+                ...$directEndpoint,
+            ],
         ],
 
         // Same database as `pgsql`, connecting as a role that bypasses row-level security.
@@ -60,8 +78,8 @@ return [
             'charset' => env('DB_CHARSET', 'utf8'),
             'prefix' => '',
             'prefix_indexes' => true,
-            'search_path' => 'public',
             'sslmode' => env('DB_SSLMODE', 'prefer'),
+            'direct' => $directEndpoint ?: null,
         ],
 
         // Same database, connecting as the schema owner. Used only for migrations and seeders:
@@ -76,8 +94,8 @@ return [
             'charset' => env('DB_CHARSET', 'utf8'),
             'prefix' => '',
             'prefix_indexes' => true,
-            'search_path' => 'public',
             'sslmode' => env('DB_SSLMODE', 'prefer'),
+            'direct' => $directEndpoint ?: null,
         ],
 
     ],

@@ -5,8 +5,8 @@ namespace App\Core\Tenancy;
 use Closure;
 use Illuminate\Auth\Events\Authenticated;
 use Illuminate\Auth\Events\Logout;
-use Illuminate\Database\Events\ConnectionEstablished;
-use Illuminate\Database\Events\TransactionRolledBack;
+use Illuminate\Database\Connection;
+use Illuminate\Database\PostgresConnection;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Schema\Builder;
 use Illuminate\Database\Schema\ForeignKeyDefinition;
@@ -23,27 +23,20 @@ class TenancyServiceProvider extends ServiceProvider
     {
         $this->app->singleton(TenantContext::class);
         $this->app->singleton(JobTenancyStack::class);
+
+        // The tenant connection carries the organisation in every statement (TenantConnection); the platform and
+        // migrator connections bypass row-level security and stay plain Postgres connections.
+        Connection::resolverFor('pgsql', function ($connection, string $database, string $prefix, array $config): PostgresConnection {
+            if (($config['name'] ?? null) === TenantContext::CONNECTION) {
+                return new TenantConnection($connection, $database, $prefix, $config)->useTenancy($this->app->make(TenantContext::class));
+            }
+
+            return new PostgresConnection($connection, $database, $prefix, $config);
+        });
     }
 
     public function boot(): void
     {
-        // A new or re-established tenant connection starts with an empty session: re-apply the tenant.
-        Event::listen(function (ConnectionEstablished $event): void {
-            $context = $this->app->make(TenantContext::class);
-
-            if ($event->connectionName === TenantContext::CONNECTION && ($context->check() || $context->userId() !== null)) {
-                $context->applyTo($event->connection);
-            }
-        });
-
-        // set_config() is transactional: a rollback (or rollback to savepoint) undoes it. Re-apply the
-        // tenant PHP holds so the database and PHP never disagree.
-        Event::listen(function (TransactionRolledBack $event): void {
-            if ($event->connectionName === TenantContext::CONNECTION) {
-                $this->app->make(TenantContext::class)->applyTo($event->connection);
-            }
-        });
-
         // Queued jobs run as the organisation they were dispatched in. Afterwards the organisation from before the job
         // comes back: none on a worker, or the surrounding one when a job runs synchronously inside Tenancy::run().
         Context::hydrated(function (Repository $context): void {

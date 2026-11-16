@@ -1,0 +1,3 @@
+"app_tenant" "tenant"
+"app_platform" "platform"
+"app_migrator" "migrator"

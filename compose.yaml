@@ -18,6 +18,18 @@ services:
       interval: 5s
       retries: 10
 
+  # A transaction-mode pooler like Laravel Cloud's. To run the suite through it (migrations go direct):
+  #   DB_PORT=6432 DB_DIRECT_HOST=127.0.0.1 DB_DIRECT_PORT=5432 DB_EXPECT_POOLER=true composer test
+  pgbouncer:
+    image: edoburu/pgbouncer:v1.24.1-p1
+    ports:
+      - "${FORWARD_POOLER_PORT:-6432}:6432"
+    volumes:
+      - ./docker/pgbouncer:/etc/pgbouncer:ro
+    depends_on:
+      pgsql:
+        condition: service_healthy
+
   php:
     build: ./docker/php
     working_dir: /app

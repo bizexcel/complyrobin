@@ -68,21 +68,22 @@ it('keeps the database tenant in step with PHP after a rollback', function (): v
     expect(dbTenant())->toBe(Tenancy::id());
 });
 
-it('keeps the PHP tenant unchanged when the database rejects the switch', function (): void {
+it('switches tenant without touching the database, so the next statement after a failed transaction runs as the new one', function (): void {
     Tenancy::set($this->b);
+    DB::beginTransaction();
 
-    DB::transaction(function (): void {
-        try {
-            DB::statement('select 1/0');
-        } catch (QueryException) {
-        }
+    try {
+        DB::statement('select 1/0');
+    } catch (QueryException) {
+    }
 
-        expect(fn () => Tenancy::set($this->a))->toThrow(QueryException::class)
-            ->and(Tenancy::id())->toBe($this->b->id);
+    Tenancy::set($this->a);
+    DB::rollBack();
 
-        throw new RuntimeException('end');
-    });
-})->throws(RuntimeException::class, 'end');
+    expect(Tenancy::id())->toBe($this->a->id)
+        ->and(dbTenant())->toBe($this->a->id)
+        ->and(DB::table('departments')->count())->toBe(2);
+});
 
 it('refuses bypass inside an open tenant transaction', function (): void {
     DB::transaction(fn () => Tenancy::bypass('x', fn (): int => 1));

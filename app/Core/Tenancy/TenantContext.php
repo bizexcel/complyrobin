@@ -8,19 +8,20 @@ use App\Core\Tenancy\Exceptions\MissingTenantContext;
 use App\Core\Tenancy\Exceptions\TenancyBypassDenied;
 use Closure;
 use Illuminate\Contracts\Events\Dispatcher;
-use Illuminate\Database\Connection;
 use Illuminate\Database\DatabaseManager;
 use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
+use LogicException;
 
 /**
  * The organisation the current request or job works for.
  *
- * The id is mirrored into the Postgres session setting `app.organisation_id`, which the
- * row-level security policies on every tenant table compare against. The signed-in user is
- * mirrored into `app.user_id`, so a user can read their own memberships before choosing one.
+ * The tenant connection (TenantConnection) sends the id with every statement as the transaction-local setting
+ * `app.organisation_id`, which the row-level security policies on every tenant table compare against, and the
+ * signed-in user as `app.user_id`, so a user can read their own memberships before choosing one. Nothing is kept in
+ * the database session, so this holds through a transaction-mode pooler.
  */
 class TenantContext
 {
@@ -32,6 +33,9 @@ class TenantContext
 
     /** Where the organisation travels in Laravel's (hidden) Context, and so into every queued job. */
     public const string CONTEXT_KEY = 'tenancy.organisation_id';
+
+    /** A UUID, or empty for none. */
+    private const string SAFE_ID = '/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})?$/';
 
     private ?string $organisationId = null;
 
@@ -56,8 +60,6 @@ class TenantContext
             throw new InvalidArgumentException('The organisation id must be a UUID.');
         }
 
-        // Database first: if the statement fails, PHP keeps the previous tenant too.
-        $this->write($id, $this->userId);
         $this->organisationId = $id;
         Context::addHidden(self::CONTEXT_KEY, $id);
 
@@ -87,7 +89,6 @@ class TenantContext
      */
     public function forget(): void
     {
-        $this->write(null, $this->userId);
         $this->organisationId = null;
         Context::forgetHidden(self::CONTEXT_KEY);
 
@@ -105,7 +106,6 @@ class TenantContext
             throw new InvalidArgumentException('The user id must be a UUID.');
         }
 
-        $this->write($this->organisationId, $userId);
         $this->userId = $userId;
     }
 
@@ -216,24 +216,20 @@ class TenantContext
     }
 
     /**
-     * Write the current organisation and user into a connection's session, e.g. after it reconnects.
+     * What the tenant connection sends before every statement: the current organisation and user, set for that
+     * statement only. Always sent, even when empty, so nothing another client left on a pooled session can apply.
      */
-    public function applyTo(Connection $connection): void
+    public function statementPrefix(): string
     {
-        $this->writeTo($connection, $this->organisationId, $this->userId);
-    }
+        $organisationId = $this->organisationId ?? '';
+        $userId = $this->userId ?? '';
 
-    private function write(?string $organisationId, ?string $userId): void
-    {
-        $this->writeTo($this->db->connection(self::CONNECTION), $organisationId, $userId);
-    }
+        // Both are checked as UUIDs when set; checked again because they are written into the SQL.
+        if (preg_match(self::SAFE_ID, $organisationId) !== 1 || preg_match(self::SAFE_ID, $userId) !== 1) {
+            throw new LogicException('The tenant ids must be UUIDs.');
+        }
 
-    private function writeTo(Connection $connection, ?string $organisationId, ?string $userId): void
-    {
-        $connection->statement(
-            "select set_config('app.organisation_id', ?, false), set_config('app.user_id', ?, false)",
-            [$organisationId ?? '', $userId ?? ''],
-        );
+        return "select set_config('app.organisation_id', '{$organisationId}', true), set_config('app.user_id', '{$userId}', true);\n";
     }
 
     private function bypassIsAllowed(): bool

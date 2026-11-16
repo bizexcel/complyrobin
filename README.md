@@ -27,6 +27,10 @@ php artisan serve
 ## Deploying
 Reminders go by email (set a mail service, e.g. Resend through Laravel Cloud), in-app and the calendar link. Team chat channels stay off until you list them in `CHAT_CHANNELS` (e.g. `slack,teams`); Telegram also needs `TELEGRAM_BOT_TOKEN`.
 
+**Database logins on Laravel Cloud.** Cloud injects the database owner's login as `DB_USERNAME`/`DB_PASSWORD`. Use it once to apply `database/sql/roles.sql` (it creates `app_migrator`, `app_tenant` and `app_platform`), then set `DB_USERNAME`/`DB_PASSWORD` to `app_tenant`, `DB_PLATFORM_USERNAME`/`DB_PLATFORM_PASSWORD` to `app_platform` and `DB_MIGRATOR_USERNAME`/`DB_MIGRATOR_PASSWORD` to `app_migrator`. Never run the app as the owner: it bypasses row-level security.
+
+**Connection pooling.** Set `DB_POOLING=true`: the app and workers then go through Cloud's pooler, and migrations use the direct endpoint automatically. Tenancy keeps nothing in the database session, so pooling is safe (`PooledConnectionTest`). `DB_POOLING=false` sends everything direct. Never set `DB_DIRECT_HOST` on Cloud.
+
 After migrating as the owner, seed the code-defined permissions and vendor catalogue, then sync system roles (all idempotent):
 
 ```bash

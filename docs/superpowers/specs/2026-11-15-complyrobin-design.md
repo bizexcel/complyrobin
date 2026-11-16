@@ -111,7 +111,7 @@ Laravel 13 · Filament 5 · PHP 8.5 · Laravel Cloud · Postgres
 ## Hosting (Laravel Cloud, Singapore `ap-southeast-1`)
 - **Compute:** PHP 8.5 on PHP-FPM; no Octane at launch.
 - **Database:** Serverless Postgres (Neon), production minimum CU set, point-in-time recovery 7–14 days.
-  - The app uses the **direct** (non-pooler) host. Section 3 explains why.
+  - The app and workers go through Cloud's **pooler** (`DB_POOLING=true`); migrations use the **direct** host automatically. Section 3 explains how tenancy stays safe behind a pooler.
 - **Cache and sessions:** Laravel Valkey for cache, sessions and locks.
 - **Files:** Laravel Object Storage buckets, whose visibility is set per bucket. A **private** bucket is the default disk for every private file (evidence, reports, imports), served only through temporary signed URLs. A **public** bucket named `public` is added when something public ships, and **extra buckets** under their own disk names when a feature needs them (decided 2026-11-15). Rule: `.ai/rules/files.md`.
 - **Queues:** managed queues for PDFs, imports/exports, notifications, reminders and webhooks.
@@ -361,10 +361,9 @@ Plus `notification_channels` and `calendar_feeds`.
   - An unset tenant matches nothing, so it fails closed.
   - Templates and the threat catalogue also allow global rows to be read.
 - **Applying the tenant id:**
-  - The middleware runs `set_config('app.organisation_id', ?, false)` once per request on the **direct** host.
-  - The pooler is avoided because, in transaction mode, it would force every request into one long transaction. That would pin connections during uploads, PDF rendering and Airwallex calls.
-  - `terminate()` resets the setting, and `DB::afterConnecting` re-applies it on reconnect.
-  - Moving to Octane later means switching to `SET LOCAL` per transaction; the policies stay the same.
+  - Every statement on the tenant connection starts with `set_config('app.organisation_id', …, true)` (and `app.user_id`), transaction-local, so nothing is kept in the database session (decided 2026-11-16).
+  - That makes it safe behind Laravel Cloud's transaction-mode pooler, where a session-level setting would leak to other clients sharing the server connection. CI proves it through PgBouncer with one shared server connection.
+  - Migrations and other DDL use the direct host automatically. It also works unchanged with Octane.
 - **Role creation:**
   - `app_tenant` must be created with SQL, not the console, because console roles join `neon_superuser`, which can bypass RLS.
   - Whether Laravel Cloud allows this is confirmed in a **Phase 0 spike**.
