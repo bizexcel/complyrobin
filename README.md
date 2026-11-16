@@ -8,37 +8,26 @@ ComplyRobin stores information *about* credentials, never the secret values.
 - **Hosting:** Laravel Cloud, Singapore. The app runs at app.complyrobin.com; the marketing site at complyrobin.com.
 - **Design:** [docs/superpowers/specs/2026-11-15-complyrobin-design.md](docs/superpowers/specs/2026-11-15-complyrobin-design.md)
 
-## Local setup
-You need PHP 8.5 (for example via Herd, or `docker compose run --rm php …`), Composer and Docker.
+## Docs
+- **[About ComplyRobin](docs/about.md):** what it does, its plans, and how it is built.
+- **[Local setup](docs/local-setup.md):** install, sign in, run the queue and scheduler, and test.
+- **[Deploying to Laravel Cloud](docs/laravel-cloud.md):** Postgres and its logins, Valkey, storage, queue, scheduler, mail, environment variables, and the build and deploy commands.
+
+Quick start:
 
 ```bash
-docker compose up -d pgsql   # Postgres 17 with the complyrobin and complyrobin_test databases and the three roles
-cp .env.example .env
-composer install             # also publishes Filament assets
-php artisan key:generate
-php artisan migrate --database=pgsql_migrator
-php artisan db:seed --database=pgsql_migrator
-php artisan serve
+docker compose up -d pgsql && cp .env.example .env && composer install && php artisan key:generate
 ```
-
-- **Customer panel:** http://localhost:8000/login
-- **Staff panel:** http://localhost:8000/admin. Your user needs `platform_role = admin`.
-
-## Deploying
-Reminders go by email (set a mail service, e.g. Resend through Laravel Cloud), in-app and the calendar link. Team chat channels stay off until you list them in `CHAT_CHANNELS` (e.g. `slack,teams`); Telegram also needs `TELEGRAM_BOT_TOKEN`.
-
-**Database logins on Laravel Cloud.** Cloud injects the database owner's login as `DB_USERNAME`/`DB_PASSWORD`. Use it once to apply `database/sql/roles.sql` (it creates `app_migrator`, `app_tenant` and `app_platform`), then set `DB_USERNAME`/`DB_PASSWORD` to `app_tenant`, `DB_PLATFORM_USERNAME`/`DB_PLATFORM_PASSWORD` to `app_platform` and `DB_MIGRATOR_USERNAME`/`DB_MIGRATOR_PASSWORD` to `app_migrator`. Never run the app as the owner: it bypasses row-level security.
-
-**Connection pooling.** Set `DB_POOLING=true`: the app and workers then go through Cloud's pooler, and migrations use the direct endpoint automatically. Tenancy keeps nothing in the database session, so pooling is safe (`PooledConnectionTest`). `DB_POOLING=false` sends everything direct. Never set `DB_DIRECT_HOST` on Cloud.
-
-After migrating as the owner, seed the code-defined permissions and vendor catalogue, then sync system roles (all idempotent):
 
 ```bash
-php artisan migrate --database=pgsql_migrator --force
-php artisan db:seed --class=PermissionSeeder --database=pgsql_migrator --force
-php artisan db:seed --class=VendorSeeder --database=pgsql_migrator --force
-php artisan access:sync-system-roles
+php artisan migrate --database=pgsql_migrator && php artisan db:seed --database=pgsql_migrator && npm install && npm run build
 ```
+
+```bash
+composer dev
+```
+
+Then sign in at http://localhost:8000/login as `test@example.com`, password `password`. The email code is in `storage/logs/laravel.log`.
 
 ## Database roles
 ComplyRobin runs on Postgres only. One database, three logins: `--database=pgsql_migrator` on migrate and seed picks the owner login, not a database engine. The app's own login can't create or change tables, which is what lets Postgres refuse to show one organisation's rows to another. Forgetting the flag fails safely with "permission denied".

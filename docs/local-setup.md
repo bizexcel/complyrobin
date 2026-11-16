@@ -96,6 +96,15 @@ Reminders only go out between 09:00 and 18:00 in each organisation's time zone.
 | `MEDIA_DISK` | A separate private disk for files. Empty uses `FILESYSTEM_DISK`. |
 
 ## Tests and checks
+Tests run against a real Postgres database, `complyrobin_test`, never SQLite. What they protect only exists in Postgres:
+- the row-level security that keeps organisations apart;
+- the three logins;
+- foreign keys that include the organisation;
+- the computed due-date column;
+- the "send once" key on reminders.
+
+The tests use their own database, so your local data is never touched.
+
 ```bash
 composer lint       # Pint
 ```
