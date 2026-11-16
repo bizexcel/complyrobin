@@ -12,7 +12,7 @@ use App\Core\Organisations\Models\Organisation;
 use App\Core\Tenancy\Facades\Tenancy;
 
 beforeEach(function (): void {
-    $this->staff = User::factory()->create(['platform_role' => PlatformRole::Support]);
+    $this->staff = User::factory()->create(['platform_role' => PlatformRole::Admin]);
     $this->organisation = Organisation::factory()->create();
 });
 

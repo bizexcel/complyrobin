@@ -147,13 +147,25 @@ It runs, in order, and stops at the first failure:
 
    If it stops, the log says "Deploy stopped: … failed." under the reason. See [When a deploy stops](#when-a-deploy-stops).
 3. **Sign up** at `https://app.complyrobin.com/register`, verify your email, and set up multi-factor authentication.
-4. **Make yourself staff** from **Commands → Open console**:
+4. **Make yourself the first Admin** from **Commands → Open console**, with the email you signed up with, exactly as you typed it:
 
    ```bash
-   php artisan tinker --execute 'App\Core\Identity\Models\User::where("email", "you@example.com")->first()->forceFill(["platform_role" => "admin"])->save();'
+   php artisan staff:grant you@example.com
    ```
 
-   `/admin` is then the staff panel, where you grant Team or Enterprise (Organisations → **Grant module**) until billing ships.
+   It only works once that account has verified its email and set up multi-factor authentication (step 3). Your email is never stored in the code or the settings: only in the database, by this command.
+5. **Open `/admin`**, the staff panel.
+   - **Organisations → Grant module:** gives an organisation Team or Enterprise until billing ships.
+   - **Staff:** add other staff by email, change their role or remove them. Each change is listed there with who made it and when.
+
+   There are two staff roles:
+
+   | Role | Can |
+   |---|---|
+   | **Admin** | everything in the staff panel, including granting plans and managing staff |
+   | **Support** | look at organisations and users, but not change them |
+
+   Nobody can change their own role, and ComplyRobin always keeps at least one Admin. The console has the same two commands, `php artisan staff:grant you@example.com --role=support` and `php artisan staff:revoke you@example.com`, for when no Admin can sign in.
 
 ## When a deploy stops
 `php artisan app:deploy` stops at the first problem, before anything later runs. The message says which step:

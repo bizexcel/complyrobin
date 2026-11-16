@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Core\Entitlements\Actions\GrantModule;
 use App\Core\Entitlements\Enums\Module;
+use App\Core\Identity\Actions\ChangeStaffRole;
 use App\Core\Identity\Enums\PlatformRole;
 use App\Core\Identity\Models\User;
 use App\Core\Organisations\Actions\CreateOrganisation;
@@ -37,6 +38,7 @@ class PreviewSeeder extends Seeder
         CreateApplication $createApplication,
         CreateCredential $createCredential,
         RecordRotation $recordRotation,
+        ChangeStaffRole $changeStaffRole,
     ): void {
         if (! app()->environment('preview')) {
             $this->command?->warn('Not a preview environment (APP_ENV=preview): no demo data.');
@@ -53,16 +55,16 @@ class PreviewSeeder extends Seeder
 
         // Through the app's own connection, as a real sign-up is: deploys run seeders as the migrator, and an
         // organisation created in the migrator's transaction is invisible to the app's session until it commits.
-        DB::usingConnection('pgsql', function () use ($password, $secret, $createOrganisation, $grantModule, $createPerson, $createApplication, $createCredential, $recordRotation): void {
+        DB::usingConnection('pgsql', function () use ($password, $secret, $changeStaffRole, $createOrganisation, $grantModule, $createPerson, $createApplication, $createCredential, $recordRotation): void {
             $owner = User::query()->firstOrNew(['email' => (string) config('preview.owner_email')]);
             $owner->forceFill([
                 'name' => $owner->name ?? 'Demo Owner',
                 'password' => Hash::make($password),
                 'email_verified_at' => $owner->email_verified_at ?? now(),
-                'platform_role' => PlatformRole::Admin,
                 'has_email_authentication' => false,
             ])->save();
             $owner->saveAppAuthenticationSecret($secret);
+            $owner = $changeStaffRole->handle(null, $owner->email, PlatformRole::Admin);
 
             if (Organisation::query()->where('slug', self::ORGANISATION_SLUG)->exists()) {
                 return;

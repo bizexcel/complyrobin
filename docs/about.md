@@ -48,7 +48,7 @@ The numbers live in `config/plans.php`. Until billing ships (Phase 3), staff gra
 - **Hosting:** Laravel Cloud.
 - **Panels:**
   - The customer panel lives at `/{organisation-slug}`, for example `app.complyrobin.com/acme`.
-  - Staff use `/admin`.
+  - Staff use `/admin`: **Admins** grant plans and manage staff, **Support** can look but not change.
 - **Code layers:**
   - `app/Core`: tenancy, organisations, identity, access, people, entitlements, files, audit, notifications.
   - `app/Grc`: the shared ISO engine (coming in Phase 4).

@@ -411,7 +411,7 @@ Every phase must pass Pest, Larastan, Pint and arch tests, and is deployed to a 
 - Organisations and sub-organisations, invitations and `organisation_user` membership, roles with Shield, required MFA, login attempts, the activity-log audit trail.
 - People and departments, with a queued spreadsheet import.
 - Entitlements with manual grants.
-- A **minimal admin panel**: organisations, users, grants, impersonation.
+- A **minimal admin panel**: organisations, users, grants, impersonation. *Staff management shipped 2026-11-16:* the `staff:grant`/`staff:revoke` commands for the first Admin, a Staff page for Admins, Support as a view-only role, and an append-only `staff_role_changes` log.
 - Tasks and reminders, notifications, media on Object Storage.
 - *Exit:* the isolation suite and the `pg_catalog` test pass.
 

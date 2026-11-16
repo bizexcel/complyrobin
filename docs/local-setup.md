@@ -68,11 +68,13 @@ The queue matters: evidence reports, CSV imports and reminder delivery run as qu
 - **Codes and links:** every sign-in needs a second factor. The test user gets an email code, and locally mail goes to the log (`MAIL_MAILER=log`). Find the line "Your sign-in code is: …" in `storage/logs/laravel.log`, or in the log pane of `composer dev`. Type it in and the form continues by itself. Invitation and verification emails land there too.
 - **The code is sent by a queued job,** so it only appears while the queue is running. `composer dev` runs it. If you start the app with `php artisan serve` alone, also run `php artisan queue:work` in a second terminal.
 - **First sign-in:** after the code you are asked to create an organisation (`/new`). Give it a name and you land on its dashboard at `/{your-slug}`.
-- **Staff panel:** it is at http://localhost:8000/admin and needs `platform_role = admin`. Give it to yourself with:
+- **Staff panel:** it is at http://localhost:8000/admin and needs a staff role. Make the test user an Admin with:
 
 ```bash
-php artisan tinker --execute 'App\Core\Identity\Models\User::where("email", "test@example.com")->first()->forceFill(["platform_role" => "admin"])->save();'
+php artisan staff:grant test@example.com
 ```
+
+  Its **Staff** page adds other staff (Admin or Support). Support can look but not change anything.
 
 - **Team features:** to try Team features locally, open the staff panel, go to Organisations, and use **Grant module** on your organisation: Credentials gives Team; pick Enterprise as the plan for Enterprise.
 

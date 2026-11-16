@@ -19,15 +19,15 @@ final readonly class GrantModule
     public function __construct(private Entitlements $entitlements) {}
 
     /**
-     * Grant a module to a root organisation (and so its sub-organisations) for a period. Platform staff only.
+     * Grant a module to a root organisation (and so its sub-organisations) for a period. Platform Admins only.
      * Any module puts the organisation on Team; pass Plan::Enterprise with the credentials module for Enterprise.
      *
      * @throws AuthorizationException
      */
     public function handle(User $staff, Organisation $organisation, Module $module, CarbonInterface $startsAt, ?CarbonInterface $endsAt = null, ?string $note = null, ?Plan $plan = null): ModuleGrant
     {
-        if (! $staff->platform_role instanceof PlatformRole) {
-            throw new AuthorizationException('Only platform staff can grant modules.');
+        if ($staff->platform_role !== PlatformRole::Admin) {
+            throw new AuthorizationException('Only a platform Admin can grant modules.');
         }
 
         if ($organisation->root_id !== null) {

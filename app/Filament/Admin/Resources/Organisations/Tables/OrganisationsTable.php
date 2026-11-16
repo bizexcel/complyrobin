@@ -5,10 +5,9 @@ namespace App\Filament\Admin\Resources\Organisations\Tables;
 use App\Core\Entitlements\Actions\GrantModule;
 use App\Core\Entitlements\Enums\Module;
 use App\Core\Entitlements\Enums\Plan;
-use App\Core\Identity\Models\User;
 use App\Core\Organisations\Models\Organisation;
+use App\Filament\Admin\Actor;
 use Filament\Actions\Action;
-use Filament\Facades\Filament;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -34,7 +33,7 @@ class OrganisationsTable
                 Action::make('grantModule')
                     ->label('Grant module')
                     ->icon('heroicon-o-key')
-                    ->visible(fn (Organisation $record): bool => $record->root_id === null)
+                    ->visible(fn (Organisation $record): bool => $record->root_id === null && Actor::isAdmin())
                     ->schema([
                         Select::make('module')->options(collect(Module::cases())->mapWithKeys(fn (Module $module): array => [$module->value => $module->name]))->required(),
                         Select::make('plan')
@@ -46,11 +45,8 @@ class OrganisationsTable
                         Textarea::make('note')->maxLength(1000),
                     ])
                     ->action(function (Organisation $record, array $data): void {
-                        $staff = Filament::auth()->user();
-                        abort_unless($staff instanceof User, 403);
-
                         app(GrantModule::class)->handle(
-                            $staff,
+                            Actor::current(),
                             $record,
                             Module::from($data['module']),
                             Carbon::parse($data['starts_at']),

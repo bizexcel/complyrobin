@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 beforeEach(function (): void {
-    $this->staff = User::factory()->create(['platform_role' => PlatformRole::Support]);
+    $this->staff = User::factory()->create(['platform_role' => PlatformRole::Admin]);
     [$this->acme, $this->globex] = Organisation::factory()->count(2)->create();
 });
 
@@ -57,9 +57,9 @@ it('sees a new grant straight away, despite the cache', function (): void {
     expect(hasModule($this->acme, Module::Bcms))->toBeTrue();
 });
 
-it('lets only platform staff grant modules', function (): void {
-    app(GrantModule::class)->handle(User::factory()->create(), $this->acme, Module::Credentials, now());
-})->throws(AuthorizationException::class);
+it('lets only a platform Admin grant modules', function (?PlatformRole $role): void {
+    app(GrantModule::class)->handle(User::factory()->create(['platform_role' => $role]), $this->acme, Module::Credentials, now());
+})->with(['Support' => PlatformRole::Support, 'a customer' => null])->throws(AuthorizationException::class);
 
 it('stops an organisation granting itself a module in the database', function (): void {
     Tenancy::run($this->acme, fn () => DB::table('module_grants')->insert([

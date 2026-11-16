@@ -1,6 +1,8 @@
 ---
 paths:
   - app/Core/Access/**
+  - app/Core/Identity/Actions/**
+  - app/Filament/Admin/**
   - app/Core/Entitlements/**
   - database/seeders/PermissionSeeder.php
 ---
@@ -22,8 +24,11 @@ Members join through `InviteMember` (needs `members.manage`; only an Owner invit
 ## Signing in
 Both panels require multi-factor authentication (Filament's authenticator app with recovery codes, or an email code): a user without it is sent to set it up first. `login_attempts` records every sign-in and failed sign-in from Laravel's `Login`/`Failed` events; the tenant role may insert into it but never read it.
 
+## Platform staff
+ComplyRobin staff have a `platform_role` on their user (`PlatformRole`): any role opens `/admin`, but only an **Admin** may change anything there (grant modules, manage staff); **Support** only looks. Check with `$user->platform_role === PlatformRole::Admin` in the Action (`GrantModule`), and hide the control with `App\Filament\Admin\Actor::isAdmin()`. Every staff role change goes through `ChangeStaffRole`, the only code that writes `platform_role`: from the Staff page (an Admin, never on their own account) or from `php artisan staff:grant`/`staff:revoke` (no actor; console only, which is how the first Admin is made). It needs a verified email and multi-factor authentication, matches the email exactly as sign-in does, locks every Admin row so ComplyRobin always keeps one, and writes `staff_role_changes`: global, append-only for the platform role, invisible to the tenant role. Never seed or hard-code a staff email (`ChangeStaffRoleTest`, `StaffPageTest`).
+
 ## Modules are entitlements
-Check a module with `app(Entitlements::class)->has(Module::Credentials)` inside the organisation. Entitlements belong to the root organisation and its sub-organisations share them (a row-level security policy lets a sub-organisation read its root's grants). Platform staff grant modules with `GrantModule`; the tenant role can't write `module_grants`. Results are cached under `org:{root}:entitlements` for five minutes and cleared when a grant changes. Paid subscriptions join the same check in the billing phase.
+Check a module with `app(Entitlements::class)->has(Module::Credentials)` inside the organisation. Entitlements belong to the root organisation and its sub-organisations share them (a row-level security policy lets a sub-organisation read its root's grants). Platform Admins grant modules with `GrantModule`; the tenant role can't write `module_grants`. Results are cached under `org:{root}:entitlements` for five minutes and cleared when a grant changes. Paid subscriptions join the same check in the billing phase.
 
 ## Plans, features and limits
 Every organisation is on a `Plan` (Free, Team, Enterprise): Enterprise if granted, Team with any module (an ISO module includes Team), otherwise Free. Ask the current organisation's plan with `Entitlements::allows(Feature::X)` and `Entitlements::limit(Limit::X)` (null means unlimited); never compare plan names in feature code. The numbers live in `config/plans.php` (Free: 3 members, 10 credentials, email/in-app/calendar only; Team: 10 members, unlimited credentials, every paid feature). Enforce a limit in the Action that adds the record (`InviteMember` counts seats with `App\Core\Organisations\Seats::taken()`: members plus unexpired open invitations; `AcceptInvitation` re-checks). Downgrading never deletes or locks existing records: it only stops new ones.

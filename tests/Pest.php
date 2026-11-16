@@ -5,6 +5,7 @@ use App\Core\Access\Enums\SystemRole;
 use App\Core\Entitlements\Actions\GrantModule;
 use App\Core\Entitlements\Enums\Module;
 use App\Core\Identity\Enums\PlatformRole;
+use App\Core\Identity\Models\StaffRoleChange;
 use App\Core\Identity\Models\User;
 use App\Core\Notifications\Actions\CreateNotificationChannel;
 use App\Core\Organisations\Actions\CreateOrganisation;
@@ -21,6 +22,7 @@ use App\Modules\Credentials\Actions\RecordRotation;
 use App\Modules\Credentials\Models\Application;
 use App\Modules\Credentials\Models\Credential;
 use Filament\Facades\Filament;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Notifications\AnonymousNotifiable;
@@ -141,4 +143,15 @@ function openOrganisationAs(User $user, Organisation $organisation): void
 function evidencePdf(string $name = 'evidence.pdf'): UploadedFile
 {
     return UploadedFile::fake()->createWithContent($name, "%PDF-1.4\n1 0 obj << /Type /Catalog >> endobj\ntrailer << /Root 1 0 R >>\n%%EOF\n");
+}
+
+/**
+ * Every recorded staff role change, oldest first. Read as staff do, on the platform connection: the app's own login
+ * can't read them.
+ *
+ * @return EloquentCollection<int, StaffRoleChange>
+ */
+function staffRoleChanges(): EloquentCollection
+{
+    return Tenancy::bypass('test: read the staff role changes', fn (): EloquentCollection => StaffRoleChange::query()->orderBy('created_at')->orderBy('id')->get());
 }
