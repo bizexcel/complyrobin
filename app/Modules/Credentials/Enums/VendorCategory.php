@@ -14,4 +14,13 @@ enum VendorCategory: string
     case Ai = 'ai';
     case Security = 'security';
     case Other = 'other';
+
+    public function label(): string
+    {
+        return match ($this) {
+            self::SourceControl => 'Source control',
+            self::Ai => 'AI',
+            default => $this->name,
+        };
+    }
 }

@@ -155,3 +155,19 @@ function staffRoleChanges(): EloquentCollection
 {
     return Tenancy::bypass('test: read the staff role changes', fn (): EloquentCollection => StaffRoleChange::query()->orderBy('created_at')->orderBy('id')->get());
 }
+
+/**
+ * Run the callback as the staff member on the staff panel, as RunAsPlatform runs each of its requests.
+ *
+ * @template TReturn
+ *
+ * @param  Closure(): TReturn  $callback
+ * @return TReturn
+ */
+function asStaff(User $staff, Closure $callback): mixed
+{
+    test()->actingAs($staff);
+    Filament::setCurrentPanel('admin');
+
+    return Tenancy::bypass('test: staff panel', $callback);
+}

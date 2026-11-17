@@ -11,14 +11,16 @@ function seedVendors(): void
     test()->artisan('db:seed', ['--class' => VendorSeeder::class, '--database' => 'pgsql_migrator'])->assertSuccessful();
 }
 
-it('seeds the catalogue idempotently, by slug', function (): void {
+it('seeds the catalogue idempotently, by slug, adding missing vendors and keeping staff edits', function (): void {
     seedVendors();
-    DB::connection('pgsql_migrator')->table('vendors')->where('slug', 'github')->update(['name' => 'Renamed']);
+    DB::connection('pgsql_migrator')->table('vendors')->where('slug', 'github')->update(['name' => 'GitHub Enterprise']);
+    DB::connection('pgsql_migrator')->table('vendors')->where('slug', 'stripe')->delete();
 
     seedVendors();
 
     expect(Vendor::query()->count())->toBe(count(VendorSeeder::VENDORS))
-        ->and(Vendor::query()->where('slug', 'github')->value('name'))->toBe('GitHub');
+        ->and(Vendor::query()->where('slug', 'github')->value('name'))->toBe('GitHub Enterprise')
+        ->and(Vendor::query()->where('slug', 'stripe')->value('name'))->toBe('Stripe');
 });
 
 it('lets the app read the catalogue but never change it', function (string $statement): void {

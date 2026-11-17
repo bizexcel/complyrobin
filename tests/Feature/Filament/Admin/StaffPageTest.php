@@ -2,32 +2,14 @@
 
 use App\Core\Identity\Enums\PlatformRole;
 use App\Core\Identity\Models\User;
-use App\Core\Tenancy\Facades\Tenancy;
 use App\Filament\Admin\Pages\Staff;
 use App\Filament\Admin\Pages\Widgets\StaffChanges;
-use Filament\Facades\Filament;
 use Livewire\Livewire;
 
 beforeEach(function (): void {
     $this->admin = User::factory()->create(['name' => 'Nadia Admin', 'platform_role' => PlatformRole::Admin]);
     $this->support = User::factory()->create(['name' => 'Sam Support', 'platform_role' => PlatformRole::Support]);
 });
-
-/**
- * Run the callback as the staff member on the staff panel, as RunAsPlatform runs each of its requests.
- *
- * @template TReturn
- *
- * @param  Closure(): TReturn  $callback
- * @return TReturn
- */
-function asStaff(User $staff, Closure $callback): mixed
-{
-    test()->actingAs($staff);
-    Filament::setCurrentPanel('admin');
-
-    return Tenancy::bypass('test: staff panel', $callback);
-}
 
 it('lists ComplyRobin staff and their roles, and no customers', function (): void {
     User::factory()->create(['name' => 'Chris Customer']);

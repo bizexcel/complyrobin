@@ -52,4 +52,9 @@ return [
         'teams_host_suffixes' => ['.logic.azure.com', '.environment.api.powerplatform.com'],
     ],
 
+    // Cloudflare Turnstile on the www contact form (POST /api/enquiries). Without the secret, every enquiry is refused.
+    'turnstile' => [
+        'secret_key' => env('TURNSTILE_SECRET_KEY'),
+    ],
+
 ];
