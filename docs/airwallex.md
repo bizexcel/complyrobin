@@ -23,6 +23,7 @@ Keys from one environment don't work in the other. Use demo for local, preview a
 | `AIRWALLEX_PRICE_CREDENTIALS_MONTHLY` | The monthly price of the credentials register (`pri_…`) | Dashboard → Billing → **Products** → "ComplyRobin Team" → monthly price | No |
 | `AIRWALLEX_PRICE_CREDENTIALS_YEARLY` | The yearly price (`pri_…`) | Same product → yearly price | No |
 | `BILLING_CURRENCY` | `myr` (the default) | | No |
+| `BILLING_TRIAL_DAYS` | `14` (the default) | The free trial on an organisation's first subscription to a module. `0` turns trials off. | No |
 
 ComplyRobin never sees a bearer token from you: it logs in with the client ID and API key and keeps the token it gets back until shortly before it expires.
 
@@ -35,7 +36,7 @@ Leave a price variable empty and the billing page doesn't offer that plan. The B
 3. Create an **API key**. If Airwallex offers a restricted key, give it access to Billing (customers, products, prices, subscriptions, checkouts, invoices) only. Copy it straight away, because Airwallex shows it once.
 4. Put both in the environment (see [Where they go](#where-they-go)).
 
-**Use an Airwallex account that only ComplyRobin uses.** A key on a shared account can read the other apps' webhook secrets (the demo API returns them), so a leak of ComplyRobin's key would expose those apps too.
+**ComplyRobin shares Bizexcel's Airwallex account with Cliniclah** (decided 2026-11-17). A key on that account can read every app's webhook secrets, which the API returns, so keep `AIRWALLEX_API_KEY` in Secrets only. ComplyRobin acts only on subscriptions tagged `app: complyrobin` and ignores the rest.
 
 ## 2. Products and prices
 
@@ -73,6 +74,6 @@ ComplyRobin refuses every webhook while the secret is empty.
 
 1. Open **Organisation → Billing** in the app as the organisation's Owner. The plans appear once their prices are set.
 2. Choose a plan. You should land on Airwallex's checkout page. In demo, pay with one of Airwallex's test cards.
-3. Back in ComplyRobin, the plan shows as active once Airwallex's webhook has arrived, usually within a minute.
+3. Back in ComplyRobin, the plan shows as on trial (or active) once Airwallex's webhook has arrived, usually within a minute. Staff see it in /admin → Organisations, in the Subscriptions column.
 
 If choosing a plan says billing isn't available, the client ID or API key is missing or wrong, or `AIRWALLEX_ENV` doesn't match the keys.

@@ -74,6 +74,7 @@ it('sends the organisation to Airwallex\'s checkout, coming back to this page', 
 
     $checkout = Http::recorded(fn (Request $request): bool => str_ends_with($request->url(), 'billing_checkouts/create'))->first()[0];
     expect($checkout['line_items'])->toBe([['price_id' => 'pri_sgpvng7wjho8pcxh39u', 'quantity' => 1]])
+        ->and($checkout['subscription_data']['trial_ends_at'])->toBe('2026-12-01T09:34:30+0000')
         ->and($checkout['subscription_data']['metadata'])->toMatchArray(['organisation_id' => $this->organisation->id, 'type' => 'credentials'])
         ->and($checkout['success_url'])->toBe(Billing::getUrl().'?checkout=success')
         ->and($checkout['back_url'])->toBe(Billing::getUrl().'?checkout=cancelled');

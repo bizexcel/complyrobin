@@ -89,6 +89,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Trial Days
+    |--------------------------------------------------------------------------
+    |
+    | The number of days an organisation may try a module for free before its
+    | first payment. A trial is only given the first time an organisation
+    | subscribes to a module, so cancelling and returning pays at once.
+    |
+    */
+
+    'trial_days' => (int) env('BILLING_TRIAL_DAYS', 14),
+
+    /*
+    |--------------------------------------------------------------------------
     | Currency
     |--------------------------------------------------------------------------
     |

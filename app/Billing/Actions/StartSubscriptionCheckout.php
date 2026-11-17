@@ -3,6 +3,7 @@
 namespace App\Billing\Actions;
 
 use App\Billing\Checkout;
+use App\Billing\SubscriptionBuilder;
 use App\Core\Access\Enums\Ability;
 use App\Core\Entitlements\Enums\Module;
 use App\Core\Identity\Models\User;
@@ -12,7 +13,8 @@ use Illuminate\Validation\ValidationException;
 
 /**
  * Send the organisation to an Airwallex Billing Checkout for a module, paid monthly or yearly. Needs billing.manage, and
- * only a root organisation pays: its sub-organisations share what it buys. The local subscription is written by the
+ * only a root organisation pays: its sub-organisations share what it buys. The first subscription to a module starts
+ * with a free trial of `billing.trial_days`. The local subscription is written by the
  * webhook once the checkout completes, as in Cashier.
  */
 final class StartSubscriptionCheckout
@@ -37,10 +39,15 @@ final class StartSubscriptionCheckout
             throw ValidationException::withMessages(['module' => 'You already pay for this.']);
         }
 
-        return $organisation->newSubscription($module->value, $price)->checkout([
-            'success_url' => $returnUrl.'?checkout=success',
-            'back_url' => $returnUrl.'?checkout=cancelled',
-        ], ['email' => $actor->email]);
+        $hadTrial = $organisation->subscriptions()->where('type', $module->value)->exists();
+        $trialDays = (int) config('billing.trial_days');
+
+        return $organisation->newSubscription($module->value, $price)
+            ->when(! $hadTrial && $trialDays > 0, fn (SubscriptionBuilder $builder): SubscriptionBuilder => $builder->trialDays($trialDays))
+            ->checkout([
+                'success_url' => $returnUrl.'?checkout=success',
+                'back_url' => $returnUrl.'?checkout=cancelled',
+            ], ['email' => $actor->email]);
     }
 
     /**

@@ -13,39 +13,6 @@ beforeEach(function (): void {
     config(['billing.webhook.secret' => 'whsec_test', 'billing.webhook.tolerance' => 300]);
 });
 
-/**
- * @param  array<string, mixed>  $overrides
- * @return array<string, mixed>
- */
-function airwallexEvent(array $overrides = []): array
-{
-    return [
-        'id' => 'evt_'.Str::random(24),
-        'name' => 'subscription.created',
-        'account_id' => 'acct_test',
-        'data' => ['object' => ['id' => 'sub_test']],
-        'created_at' => now()->toIso8601String(),
-        ...$overrides,
-    ];
-}
-
-/**
- * Post the event as Airwallex would: the raw body, signed with the timestamp in milliseconds.
- *
- * @param  array<string, mixed>  $payload
- */
-function postWebhook(array $payload, ?string $secret = 'whsec_test', ?int $timestampMs = null): TestResponse
-{
-    $body = json_encode($payload, JSON_THROW_ON_ERROR);
-    $timestamp = (string) ($timestampMs ?? now()->getTimestampMs());
-
-    return test()->call('POST', route('cashier.webhook'), server: [
-        'HTTP_X_TIMESTAMP' => $timestamp,
-        'HTTP_X_SIGNATURE' => $secret === null ? '' : WebhookSignature::computeSignature($timestamp, $body, $secret),
-        'CONTENT_TYPE' => 'application/json',
-    ], content: $body);
-}
-
 function storedWebhookCalls(): int
 {
     return Tenancy::bypass('test: count the stored webhook calls', fn (): int => WebhookCall::query()->count());

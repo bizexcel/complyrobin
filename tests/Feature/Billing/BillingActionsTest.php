@@ -10,6 +10,7 @@ use App\Core\Identity\Models\User;
 use App\Core\Organisations\Actions\CreateOrganisation;
 use App\Core\Tenancy\Facades\Tenancy;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\ValidationException;
 
@@ -59,4 +60,17 @@ it('needs the billing permission to cancel', function (): void {
     expect(fn () => Tenancy::run($this->organisation, fn () => app(CancelSubscription::class)
         ->handle(memberWithRole($this->organisation, SystemRole::Editor), $this->organisation->fresh(), Module::Credentials)))
         ->toThrow(AuthorizationException::class);
+});
+
+it('gives a free trial only the first time an organisation subscribes to a module', function (): void {
+    fakeAirwallex([
+        'billing_customers/create' => ['billing_customers.create', 201],
+        'billing_checkouts/create' => ['billing_checkouts.create', 201],
+    ]);
+    Tenancy::run($this->organisation, fn () => Subscription::factory()->canceled()->create(['type' => 'credentials', 'ends_at' => now()->subDay()]));
+
+    startCheckout($this->owner);
+
+    Http::assertSent(fn (Request $request): bool => str_ends_with($request->url(), 'billing_checkouts/create')
+        && ! isset($request['subscription_data']['trial_ends_at']));
 });

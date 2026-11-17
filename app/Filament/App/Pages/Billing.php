@@ -219,7 +219,9 @@ class Billing extends Page implements HasTable
             $subscription instanceof Subscription && $subscription->pastDue() => 'Payment overdue. Pay the open invoice below to keep using it.',
             $subscription instanceof Subscription && $subscription->active() => 'Active. It renews automatically.',
             $this->hasModule($module) => 'Included in your plan by ComplyRobin. Nothing to pay.',
-            default => 'Not subscribed. Choose how you\'d like to pay. Cards, Google Pay and Apple Pay are accepted.',
+            default => $this->organisation()->subscriptions()->where('type', $module->value)->exists()
+                ? 'Not subscribed. Choose how you\'d like to pay. Cards, Google Pay and Apple Pay are accepted.'
+                : 'Not subscribed. Try it free for '.config('billing.trial_days').' days, then pay monthly or yearly by card, Google Pay or Apple Pay.',
         };
     }
 

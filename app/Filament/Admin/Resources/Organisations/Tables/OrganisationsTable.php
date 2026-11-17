@@ -2,6 +2,7 @@
 
 namespace App\Filament\Admin\Resources\Organisations\Tables;
 
+use App\Billing\Subscription;
 use App\Core\Entitlements\Actions\GrantModule;
 use App\Core\Entitlements\Enums\Module;
 use App\Core\Entitlements\Enums\Plan;
@@ -21,11 +22,23 @@ class OrganisationsTable
     public static function configure(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn ($query) => $query->withCount('users'))
+            ->modifyQueryUsing(fn ($query) => $query->withCount('users')->with('subscriptions'))
             ->columns([
                 TextColumn::make('name')->searchable()->sortable(),
                 TextColumn::make('slug')->searchable(),
                 TextColumn::make('users_count')->label('Members')->sortable(),
+                TextColumn::make('subscriptions')
+                    ->label('Subscriptions')
+                    ->state(fn (Organisation $record): array => $record->subscriptions->sortByDesc('created_at')->map(self::subscriptionStatus(...))->values()->all())
+                    ->badge()
+                    ->color(fn (string $state): string => match (true) {
+                        str_ends_with($state, 'active'), str_contains($state, 'trial') => 'success',
+                        str_contains($state, 'overdue'), str_contains($state, 'unfinished') => 'danger',
+                        str_contains($state, 'ends') => 'warning',
+                        default => 'gray',
+                    })
+                    ->placeholder('None'),
+                TextColumn::make('airwallex_id')->label('Airwallex customer')->copyable()->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('created_at')->dateTime()->sortable(),
             ])
             ->defaultSort('created_at', 'desc')
@@ -58,5 +71,22 @@ class OrganisationsTable
                         Notification::make()->title('Module granted')->success()->send();
                     }),
             ]);
+    }
+
+    /**
+     * A subscription in a few words for staff, e.g. "Credentials: on trial until 1 Dec 2026".
+     */
+    private static function subscriptionStatus(Subscription $subscription): string
+    {
+        $status = match (true) {
+            $subscription->onGracePeriod() => 'ends '.$subscription->ends_at?->format('j M Y'),
+            $subscription->ended() => 'ended',
+            $subscription->onTrial() => 'on trial until '.$subscription->trial_ends_at?->format('j M Y'),
+            $subscription->pastDue() => 'payment overdue',
+            $subscription->incomplete() => 'checkout unfinished',
+            default => 'active',
+        };
+
+        return ucfirst($subscription->type).": {$status}";
     }
 }

@@ -1,5 +1,6 @@
 <?php
 
+use App\Billing\Airwallex\WebhookSignature;
 use App\Billing\SubscriptionItem;
 use App\Core\Access\Enums\Ability;
 use App\Core\Access\Enums\SystemRole;
@@ -32,6 +33,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 pest()->extend(TestCase::class)->in('Feature', 'Arch');
@@ -186,4 +188,37 @@ function fakeAirwallex(array $routes): void
             "api-demo.airwallex.com/api/v1/billing/{$path}" => Http::response(airwallexFixture($route[0]), $route[1] ?? 200),
         ])->all(),
     ]);
+}
+
+/**
+ * @param  array<string, mixed>  $overrides
+ * @return array<string, mixed>
+ */
+function airwallexEvent(array $overrides = []): array
+{
+    return [
+        'id' => 'evt_'.Str::random(24),
+        'name' => 'invoice.created',
+        'account_id' => 'acct_test',
+        'data' => ['object' => ['id' => 'inv_test']],
+        'created_at' => now()->toIso8601String(),
+        ...$overrides,
+    ];
+}
+
+/**
+ * Post the event as Airwallex would: the raw body, signed with the timestamp in milliseconds.
+ *
+ * @param  array<string, mixed>  $payload
+ */
+function postWebhook(array $payload, ?string $secret = 'whsec_test', ?int $timestampMs = null): TestResponse
+{
+    $body = json_encode($payload, JSON_THROW_ON_ERROR);
+    $timestamp = (string) ($timestampMs ?? now()->getTimestampMs());
+
+    return test()->call('POST', route('cashier.webhook'), server: [
+        'HTTP_X_TIMESTAMP' => $timestamp,
+        'HTTP_X_SIGNATURE' => $secret === null ? '' : WebhookSignature::computeSignature($timestamp, $body, $secret),
+        'CONTENT_TYPE' => 'application/json',
+    ], content: $body);
 }
