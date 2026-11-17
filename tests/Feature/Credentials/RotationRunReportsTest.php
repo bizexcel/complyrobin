@@ -100,7 +100,7 @@ it('refuses a report that carries something that looks like a key, and keeps it 
     $run = claimedRun();
     $report = $isFailure ? failureReport($run, [$field => $key]) : successReport($run, [$field => $key]);
 
-    expect(fn () => reportRun($report))->toThrow(ValidationException::class);
+    expect(fn (): ?array => reportRun($report))->toThrow(ValidationException::class);
 
     expect($run->refresh()->status)->toBe(RotationRunStatus::Claimed)
         ->and(rotationsOf($this->credential))->toBe(0)
@@ -159,7 +159,7 @@ it('refuses a rotation time before the claim or in the future', function (string
     $run = claimedRun();
     $rotatedAt = $when === 'before' ? now()->subMinutes(10) : now()->addMinutes(10);
 
-    expect(fn () => reportRun(successReport($run, ['rotated_at' => $rotatedAt->toIso8601String()])))->toThrow(ValidationException::class, 'The rotation time must be between when the run was claimed and now.');
+    expect(fn (): ?array => reportRun(successReport($run, ['rotated_at' => $rotatedAt->toIso8601String()])))->toThrow(ValidationException::class, 'The rotation time must be between when the run was claimed and now.');
     expect(rotationsOf($this->credential))->toBe(0);
 })->with(['before', 'after']);
 
@@ -167,7 +167,7 @@ it('refuses a success for a credential revoked meanwhile, and marks the run fail
     $run = claimedRun();
     Tenancy::run($this->organisation, fn () => $this->credential->forceFill(['revoked_at' => now()])->save());
 
-    expect(fn () => reportRun(successReport($run)))->toThrow(ValidationException::class);
+    expect(fn (): ?array => reportRun(successReport($run)))->toThrow(ValidationException::class);
     expect($run->refresh()->status)->toBe(RotationRunStatus::Failed)
         ->and(rotationsOf($this->credential))->toBe(0);
 });
@@ -176,7 +176,7 @@ it('asks for the new key\'s expiry when the credential expires', function (): vo
     Tenancy::run($this->organisation, fn () => $this->credential->forceFill(['expires_at' => now()->subHour()])->save());
     $run = claimedRun();
 
-    expect(fn () => reportRun(successReport($run)))->toThrow(ValidationException::class, 'This credential expires: send the new key\'s expiry date.');
+    expect(fn (): ?array => reportRun(successReport($run)))->toThrow(ValidationException::class, 'This credential expires: send the new key\'s expiry date.');
 });
 
 it('answers 404 for another runner\'s run and null for a bad token', function (): void {
