@@ -9,6 +9,7 @@ use App\Modules\Credentials\Models\Application;
 use App\Modules\Credentials\Models\AutomaticRotation;
 use App\Modules\Credentials\Models\Credential;
 use Filament\Forms\Components\Repeater;
+use Illuminate\Support\Carbon;
 use Livewire\Livewire;
 
 beforeEach(function (): void {
@@ -51,7 +52,7 @@ it('asks the runner to rotate now, and switches automatic rotation off', functio
     openOrganisationAs($this->owner, $this->organisation);
 
     Livewire::test(ViewCredential::class, ['record' => $credential->getRouteKey()])->callAction('rotateNow');
-    expect(Tenancy::run($this->organisation, fn () => AutomaticRotation::query()->sole()->requested_at))->not->toBeNull();
+    expect(Tenancy::run($this->organisation, fn (): ?Carbon => AutomaticRotation::query()->sole()->requested_at))->not->toBeNull();
 
     Livewire::test(ViewCredential::class, ['record' => $credential->getRouteKey()])->callAction('switchOffAutomaticRotation');
     expect(Tenancy::run($this->organisation, fn (): int => AutomaticRotation::query()->count()))->toBe(0);

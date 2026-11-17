@@ -73,7 +73,7 @@ class RotationRunners extends Page implements HasTable
             Section::make('Rotate keys automatically')
                 ->description('A rotation runner is a small program you run in your own GitHub account or Laravel app. It swaps keys when they are due and tells ComplyRobin when it is done. Your keys and admin tokens stay with you: ComplyRobin never sees them.')
                 ->schema([
-                    Text::make('Automatic rotation is part of the Team plan.')->visible(fn (): bool => ! self::isAllowed()),
+                    Text::make('Automatic rotation is part of the Team plan.')->visible(fn (): bool => ! $this->isAllowed()),
                     Text::make('Copy this token now. For your security it is shown only once.')->visible(fn (): bool => $this->newToken !== null),
                     Text::make(fn (): string => (string) $this->newToken)
                         ->fontFamily(FontFamily::Mono)
@@ -137,7 +137,7 @@ class RotationRunners extends Page implements HasTable
             Action::make('addRunner')
                 ->label('Add runner')
                 ->icon(Heroicon::OutlinedPlus)
-                ->visible(fn (): bool => self::isAllowed())
+                ->visible(fn (): bool => $this->isAllowed())
                 ->schema([
                     TextInput::make('name')
                         ->required()
@@ -155,7 +155,7 @@ class RotationRunners extends Page implements HasTable
         ];
     }
 
-    private static function isAllowed(): bool
+    private function isAllowed(): bool
     {
         return app(Entitlements::class)->allows(Feature::AutomaticRotation);
     }

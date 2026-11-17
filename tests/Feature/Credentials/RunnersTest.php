@@ -44,13 +44,13 @@ it('is part of the Team plan', function (): void {
     $owner = User::factory()->create();
     $free = app(CreateOrganisation::class)->handle($owner, 'Globex');
 
-    expect(fn () => runnerFor($free, $owner))->toThrow(ValidationException::class, 'Automatic rotation is part of the Team plan.');
+    expect(fn (): array => runnerFor($free, $owner))->toThrow(ValidationException::class, 'Automatic rotation is part of the Team plan.');
 });
 
 it('refuses a second runner with the same name', function (): void {
     runnerFor($this->organisation, $this->owner);
 
-    expect(fn () => runnerFor($this->organisation, $this->owner))->toThrow(ValidationException::class, 'You already have a runner with this name.');
+    expect(fn (): array => runnerFor($this->organisation, $this->owner))->toThrow(ValidationException::class, 'You already have a runner with this name.');
 });
 
 it('stops finding a revoked runner, one from another organisation, or a malformed token', function (): void {

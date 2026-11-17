@@ -68,7 +68,7 @@ it('replaces the settings when set again', function (): void {
 
     expect(Tenancy::run($this->organisation, fn () => AutomaticRotation::query()->pluck('source_settings')->all()))
         ->toHaveCount(1)
-        ->and(Tenancy::run($this->organisation, fn () => AutomaticRotation::query()->sole()->source_settings['project_id']))->toBe('proj_new');
+        ->and(Tenancy::run($this->organisation, fn (): string => AutomaticRotation::query()->sole()->source_settings['project_id']))->toBe('proj_new');
 });
 
 it('refuses a revoked runner and a runner from another organisation', function (): void {

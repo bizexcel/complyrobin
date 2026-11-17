@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Core\Organisations\Models\Organisation;
 use App\Http\RunnerRequests;
 use App\Modules\Credentials\Actions\ReportRotationRun;
 use Illuminate\Http\JsonResponse;
@@ -17,7 +18,7 @@ class RunnerReportsController extends Controller
     {
         $tenant = RunnerRequests::organisation($organisation);
         $token = (string) $request->bearerToken();
-        $outcome = $tenant === null || $token === '' ? null : $reportRotationRun->handle($tenant, $token, $request->json()->all());
+        $outcome = ! $tenant instanceof Organisation || $token === '' ? null : $reportRotationRun->handle($tenant, $token, $request->json()->all());
 
         return $outcome === null ? RunnerRequests::unauthenticated() : RunnerRequests::json($outcome['body'], $outcome['status']);
     }

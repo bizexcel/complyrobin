@@ -63,7 +63,7 @@ function failureReport(RotationRun $run, array $overrides = []): array
  * @param  array<string, mixed>  $report
  * @return array{status: int, body: array<string, mixed>}|null
  */
-function report(array $report, ?string $token = null, ?Organisation $organisation = null): ?array
+function reportRun(array $report, ?string $token = null, ?Organisation $organisation = null): ?array
 {
     return app(ReportRotationRun::class)->handle($organisation ?? test()->organisation, $token ?? test()->token, $report);
 }
@@ -77,7 +77,7 @@ it('records a rotation from a successful report', function (): void {
     $run = claimedRun();
     $wasDue = $this->credential->next_rotation_at;
 
-    expect(report(successReport($run)))->toBe(['status' => 200, 'body' => ['recorded' => true]]);
+    expect(reportRun(successReport($run)))->toBe(['status' => 200, 'body' => ['recorded' => true]]);
 
     $rotation = Tenancy::run($this->organisation, fn (): CredentialRotation => CredentialRotation::query()->where('credential_id', $this->credential->id)->sole());
     $credential = Tenancy::run($this->organisation, fn (): Credential => $this->credential->refresh());
@@ -100,7 +100,7 @@ it('refuses a report that carries something that looks like a key, and keeps it 
     $run = claimedRun();
     $report = $isFailure ? failureReport($run, [$field => $key]) : successReport($run, [$field => $key]);
 
-    expect(fn () => report($report))->toThrow(ValidationException::class);
+    expect(fn () => reportRun($report))->toThrow(ValidationException::class);
 
     expect($run->refresh()->status)->toBe(RotationRunStatus::Claimed)
         ->and(rotationsOf($this->credential))->toBe(0)
@@ -116,9 +116,9 @@ it('records nothing new when the same report arrives twice', function (): void {
     $run = claimedRun();
     $report = successReport($run);
 
-    report($report);
+    reportRun($report);
 
-    expect(report($report))->toBe(['status' => 200, 'body' => ['recorded' => true]])
+    expect(reportRun($report))->toBe(['status' => 200, 'body' => ['recorded' => true]])
         ->and(rotationsOf($this->credential))->toBe(1);
 });
 
@@ -129,23 +129,23 @@ it('accepts a late success for a run it had given up on', function (): void {
     app(ClaimRotationRuns::class)->handle($this->organisation, $this->token);
 
     expect($run->refresh()->status)->toBe(RotationRunStatus::Abandoned)
-        ->and(report(successReport($run, ['rotated_at' => $rotatedAt->toIso8601String()]))['status'])->toBe(200)
+        ->and(reportRun(successReport($run, ['rotated_at' => $rotatedAt->toIso8601String()]))['status'])->toBe(200)
         ->and($run->refresh()->status)->toBe(RotationRunStatus::Succeeded)
         ->and(rotationsOf($this->credential))->toBe(1);
 });
 
 it('answers 409 when a finished run is reported with the other outcome', function (): void {
     $run = claimedRun();
-    report(successReport($run));
+    reportRun(successReport($run));
 
-    expect(report(failureReport($run)))->toBe(['status' => 409, 'body' => ['message' => 'This run has already been reported.']]);
+    expect(reportRun(failureReport($run)))->toBe(['status' => 409, 'body' => ['message' => 'This run has already been reported.']]);
 });
 
 it('stores why a run failed and tells the owners, leaving the credential as it was', function (): void {
     $run = claimedRun();
     $lastRotated = $this->credential->last_rotated_at;
 
-    expect(report(failureReport($run))['status'])->toBe(200);
+    expect(reportRun(failureReport($run))['status'])->toBe(200);
 
     $run->refresh();
     expect($run->status)->toBe(RotationRunStatus::Failed)
@@ -159,7 +159,7 @@ it('refuses a rotation time before the claim or in the future', function (string
     $run = claimedRun();
     $rotatedAt = $when === 'before' ? now()->subMinutes(10) : now()->addMinutes(10);
 
-    expect(fn () => report(successReport($run, ['rotated_at' => $rotatedAt->toIso8601String()])))->toThrow(ValidationException::class, 'The rotation time must be between when the run was claimed and now.');
+    expect(fn () => reportRun(successReport($run, ['rotated_at' => $rotatedAt->toIso8601String()])))->toThrow(ValidationException::class, 'The rotation time must be between when the run was claimed and now.');
     expect(rotationsOf($this->credential))->toBe(0);
 })->with(['before', 'after']);
 
@@ -167,7 +167,7 @@ it('refuses a success for a credential revoked meanwhile, and marks the run fail
     $run = claimedRun();
     Tenancy::run($this->organisation, fn () => $this->credential->forceFill(['revoked_at' => now()])->save());
 
-    expect(fn () => report(successReport($run)))->toThrow(ValidationException::class);
+    expect(fn () => reportRun(successReport($run)))->toThrow(ValidationException::class);
     expect($run->refresh()->status)->toBe(RotationRunStatus::Failed)
         ->and(rotationsOf($this->credential))->toBe(0);
 });
@@ -176,15 +176,15 @@ it('asks for the new key\'s expiry when the credential expires', function (): vo
     Tenancy::run($this->organisation, fn () => $this->credential->forceFill(['expires_at' => now()->subHour()])->save());
     $run = claimedRun();
 
-    expect(fn () => report(successReport($run)))->toThrow(ValidationException::class, 'This credential expires: send the new key\'s expiry date.');
+    expect(fn () => reportRun(successReport($run)))->toThrow(ValidationException::class, 'This credential expires: send the new key\'s expiry date.');
 });
 
 it('answers 404 for another runner\'s run and null for a bad token', function (): void {
     $run = claimedRun();
     ['token' => $otherToken] = runnerFor($this->organisation, $this->owner, 'Laravel app');
 
-    expect(report(successReport($run), $otherToken)['status'])->toBe(404)
-        ->and(report(successReport($run), 'crr_'.str_repeat('b', 60)))->toBeNull();
+    expect(reportRun(successReport($run), $otherToken)['status'])->toBe(404)
+        ->and(reportRun(successReport($run), 'crr_'.str_repeat('b', 60)))->toBeNull();
 });
 
 it('answers 403 once the organisation is back on Free', function (): void {
@@ -197,5 +197,5 @@ it('answers 403 once the organisation is back on Free', function (): void {
 
     $this->travel(2)->hours();
 
-    expect(report(['run' => $claim['jobs'][0]['run'], 'outcome' => 'failed', 'step' => 'mint', 'message' => 'x'], $token, $organisation)['status'])->toBe(403);
+    expect(reportRun(['run' => $claim['jobs'][0]['run'], 'outcome' => 'failed', 'step' => 'mint', 'message' => 'x'], $token, $organisation)['status'])->toBe(403);
 });

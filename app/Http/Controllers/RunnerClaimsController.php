@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Core\Organisations\Models\Organisation;
 use App\Http\RunnerRequests;
 use App\Modules\Credentials\Actions\ClaimRotationRuns;
 use Illuminate\Http\JsonResponse;
@@ -17,7 +18,7 @@ class RunnerClaimsController extends Controller
     {
         $tenant = RunnerRequests::organisation($organisation);
         $token = (string) $request->bearerToken();
-        $claim = $tenant === null || $token === '' ? null : $claimRotationRuns->handle($tenant, $token);
+        $claim = ! $tenant instanceof Organisation || $token === '' ? null : $claimRotationRuns->handle($tenant, $token);
 
         return $claim === null ? RunnerRequests::unauthenticated() : RunnerRequests::json($claim);
     }
