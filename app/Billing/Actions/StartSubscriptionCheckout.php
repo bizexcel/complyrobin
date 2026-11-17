@@ -13,7 +13,8 @@ use Illuminate\Validation\ValidationException;
 
 /**
  * Send the organisation to an Airwallex Billing Checkout for a module, paid monthly or yearly. Needs billing.manage, and
- * only a root organisation pays: its sub-organisations share what it buys. The first subscription to a module starts
+ * only a root organisation pays: its sub-organisations share what it buys. It pays in the currency its country decides
+ * (`preferredCurrency()`), so its country must be set. The first subscription to a module starts
  * with a free trial of `billing.trial_days`. The local subscription is written by the
  * webhook once the checkout completes, as in Cashier.
  */
@@ -29,7 +30,11 @@ final class StartSubscriptionCheckout
             throw ValidationException::withMessages(['module' => 'Billing is managed by your main organisation.']);
         }
 
-        $price = self::price($module, $interval);
+        if ($organisation->country === null) {
+            throw ValidationException::withMessages(['module' => 'Choose your organisation\'s country in Organisation settings first. It decides the currency you pay in.']);
+        }
+
+        $price = self::price($module, $interval, $organisation->preferredCurrency());
 
         if ($price === null) {
             throw ValidationException::withMessages(['module' => 'That plan isn\'t on sale yet.']);
@@ -51,15 +56,15 @@ final class StartSubscriptionCheckout
     }
 
     /**
-     * The Airwallex price id a module is sold at, or null when it isn't offered.
+     * The Airwallex price id a module is sold at in a currency, or null when it isn't offered.
      */
-    public static function price(Module $module, string $interval): ?string
+    public static function price(Module $module, string $interval, string $currency): ?string
     {
-        if (! in_array($interval, self::INTERVALS, true)) {
+        if (! in_array($interval, self::INTERVALS, true) || preg_match('/^[a-z]{3}$/', $currency) !== 1) {
             return null;
         }
 
-        $price = config("billing.prices.{$module->value}.{$interval}");
+        $price = config("billing.prices.{$module->value}.{$currency}.{$interval}");
 
         return is_string($price) && $price !== '' ? $price : null;
     }

@@ -66,24 +66,30 @@ return [
     | Prices
     |--------------------------------------------------------------------------
     |
-    | The Airwallex price ids each module is sold at, by billing interval.
-    | Products and prices are made once in the Airwallex dashboard; an
-    | empty price id means that plan isn't offered on the billing page.
+    | The Airwallex price ids each module is sold at, by currency and by
+    | billing interval. A Malaysian organisation pays in ringgit and all
+    | others in US dollars. An empty id means that plan isn't offered.
     |
     */
 
     'prices' => [
         'credentials' => [
-            'monthly' => env('AIRWALLEX_PRICE_CREDENTIALS_MONTHLY'),
-            'yearly' => env('AIRWALLEX_PRICE_CREDENTIALS_YEARLY'),
+            'myr' => [
+                'monthly' => env('AIRWALLEX_PRICE_CREDENTIALS_MYR_MONTHLY'),
+                'yearly' => env('AIRWALLEX_PRICE_CREDENTIALS_MYR_YEARLY'),
+            ],
+            'usd' => [
+                'monthly' => env('AIRWALLEX_PRICE_CREDENTIALS_USD_MONTHLY'),
+                'yearly' => env('AIRWALLEX_PRICE_CREDENTIALS_USD_YEARLY'),
+            ],
         ],
         'bcms' => [
-            'monthly' => env('AIRWALLEX_PRICE_BCMS_MONTHLY'),
-            'yearly' => env('AIRWALLEX_PRICE_BCMS_YEARLY'),
+            'myr' => ['monthly' => env('AIRWALLEX_PRICE_BCMS_MYR_MONTHLY'), 'yearly' => env('AIRWALLEX_PRICE_BCMS_MYR_YEARLY')],
+            'usd' => ['monthly' => env('AIRWALLEX_PRICE_BCMS_USD_MONTHLY'), 'yearly' => env('AIRWALLEX_PRICE_BCMS_USD_YEARLY')],
         ],
         'isms' => [
-            'monthly' => env('AIRWALLEX_PRICE_ISMS_MONTHLY'),
-            'yearly' => env('AIRWALLEX_PRICE_ISMS_YEARLY'),
+            'myr' => ['monthly' => env('AIRWALLEX_PRICE_ISMS_MYR_MONTHLY'), 'yearly' => env('AIRWALLEX_PRICE_ISMS_MYR_YEARLY')],
+            'usd' => ['monthly' => env('AIRWALLEX_PRICE_ISMS_USD_MONTHLY'), 'yearly' => env('AIRWALLEX_PRICE_ISMS_USD_YEARLY')],
         ],
     ],
 

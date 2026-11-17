@@ -88,6 +88,15 @@ class Billing extends Page implements HasTable
     public function content(Schema $schema): Schema
     {
         return $schema->components([
+            Section::make('Your country')
+                ->key('country')
+                ->visible(fn (): bool => $this->organisation()->country === null)
+                ->schema([Text::make('Choose your organisation\'s country before you subscribe. Organisations in Malaysia pay in ringgit, everyone else in US dollars.')])
+                ->footer([
+                    Action::make('chooseCountry')
+                        ->label('Open organisation settings')
+                        ->url(fn (): string => OrganisationSettings::getUrl()),
+                ]),
             ...array_map($this->moduleSection(...), self::modulesOnSale()),
             Section::make('Invoices')
                 ->description('Airwallex sends each invoice by email too.')
@@ -123,7 +132,17 @@ class Billing extends Page implements HasTable
     }
 
     /**
-     * The modules with at least one price set in config/billing.php.
+     * The currency the current organisation pays in, decided by its country.
+     */
+    public static function currency(): string
+    {
+        $organisation = Filament::getTenant();
+
+        return $organisation instanceof Organisation ? $organisation->preferredCurrency() : (string) config('billing.currency');
+    }
+
+    /**
+     * The modules with at least one price set in config/billing.php, in the current organisation's currency.
      *
      * @return list<Module>
      */
@@ -131,7 +150,7 @@ class Billing extends Page implements HasTable
     {
         return array_values(array_filter(Module::cases(), fn (Module $module): bool => array_any(
             StartSubscriptionCheckout::INTERVALS,
-            fn (string $interval): bool => StartSubscriptionCheckout::price($module, $interval) !== null,
+            fn (string $interval): bool => StartSubscriptionCheckout::price($module, $interval, self::currency()) !== null,
         )));
     }
 
@@ -151,7 +170,9 @@ class Billing extends Page implements HasTable
         return Action::make("subscribe-{$module->value}-{$interval}")
             ->label($interval === 'monthly' ? 'Pay monthly' : 'Pay yearly')
             ->color($interval === 'monthly' ? 'primary' : 'gray')
-            ->visible(fn (): bool => StartSubscriptionCheckout::price($module, $interval) !== null && ! $this->hasModule($module))
+            ->visible(fn (): bool => $this->organisation()->country !== null
+                && StartSubscriptionCheckout::price($module, $interval, self::currency()) !== null
+                && ! $this->hasModule($module))
             ->action(function (Action $action) use ($module, $interval): void {
                 try {
                     $checkout = app(StartSubscriptionCheckout::class)

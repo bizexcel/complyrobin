@@ -73,11 +73,11 @@ it('saves the settings page', function (): void {
     openOrganisationAs($this->owner, $this->organisation);
 
     Livewire::test(OrganisationSettings::class)
-        ->fillForm(['name' => 'Acme Group', 'timezone' => 'Asia/Jakarta', 'reminders_before' => ['21', '7'], 'reminders_overdue' => ['0', '2'], 'reminders_send_hour' => 10])
+        ->fillForm(['name' => 'Acme Group', 'timezone' => 'Asia/Jakarta', 'country' => 'ID', 'reminders_before' => ['21', '7'], 'reminders_overdue' => ['0', '2'], 'reminders_send_hour' => 10])
         ->call('save')
         ->assertHasNoFormErrors();
 
-    expect($this->organisation->refresh())->name->toBe('Acme Group')->timezone->toBe('Asia/Jakarta')
+    expect($this->organisation->refresh())->name->toBe('Acme Group')->timezone->toBe('Asia/Jakarta')->country->toBe('ID')
         ->and(ReminderPolicy::for($this->organisation)->before)->toBe([21, 7]);
 });
 

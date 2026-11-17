@@ -75,7 +75,7 @@ Before the first deploy, set the three passwords (step 3): strong ones from a pa
 | `AIRWALLEX_CLIENT_ID` | from Airwallex | |
 | `AIRWALLEX_API_KEY` | secret | |
 | `AIRWALLEX_WEBHOOK_SECRET` | secret | Without it, every webhook is refused. |
-| `AIRWALLEX_PRICE_CREDENTIALS_MONTHLY`, `AIRWALLEX_PRICE_CREDENTIALS_YEARLY` | `pri_…` ids | Empty means the plan isn't offered. |
+| `AIRWALLEX_PRICE_CREDENTIALS_MYR_MONTHLY`, `…_MYR_YEARLY`, `…_USD_MONTHLY`, `…_USD_YEARLY` | `pri_…` ids | Ringgit for Malaysia, US dollars elsewhere. Empty means the plan isn't offered in that currency. |
 | `BILLING_TRIAL_DAYS` | `14` | Optional; 14 is the default. |
 
 **Never set** `DB_DIRECT_HOST` or `DB_DIRECT_PORT` on Cloud: Cloud works out the direct host itself. Never set per-file visibility on storage either.

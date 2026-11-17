@@ -40,7 +40,7 @@ final class Checkout implements Arrayable, Jsonable, JsonSerializable, Responsab
     {
         $data = array_merge([
             'mode' => 'SUBSCRIPTION',
-            'currency' => strtoupper((string) config('billing.currency')),
+            'currency' => strtoupper($owner->preferredCurrency()),
         ], $sessionOptions);
 
         $data['billing_customer_id'] = $owner->createOrGetAirwallexCustomer($customerOptions)->id;

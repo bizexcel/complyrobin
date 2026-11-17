@@ -5,6 +5,7 @@ namespace App\Core\Organisations\Models;
 use App\Billing\Billable;
 use App\Core\Audit\Concerns\LogsTenantActivity;
 use App\Core\Identity\Models\User;
+use App\Core\Organisations\Support\Countries;
 use App\Core\Tenancy\Concerns\UsesTenancyConnection;
 use App\Core\Tenancy\Exceptions\TenantMismatch;
 use App\Core\Tenancy\Facades\Tenancy;
@@ -30,8 +31,9 @@ use Spatie\MediaLibrary\InteractsWithMedia;
  * @property string|null $root_id
  * @property list<string> $previous_slugs slugs it used before; they redirect here and nobody else may take them
  * @property Carbon|null $trial_ends_at Cashier's generic trial, on the root organisation
+ * @property string|null $country ISO 3166-1 alpha-2; decides the billing currency
  */
-#[Fillable(['name', 'slug', 'timezone', 'parent_id', 'root_id', 'settings'])]
+#[Fillable(['name', 'slug', 'timezone', 'country', 'parent_id', 'root_id', 'settings'])]
 #[UseFactory(OrganisationFactory::class)]
 class Organisation extends Model implements HasMedia
 {
@@ -71,6 +73,19 @@ class Organisation extends Model implements HasMedia
                 throw TenantMismatch::for(self::class, $organisation->getKey(), 'none (deleting needs Tenancy::bypass())');
             }
         });
+    }
+
+    /**
+     * Get the Airwallex supported currency used by the customer: ringgit for a Malaysian organisation, US dollars for
+     * one based anywhere else, and the configured currency until its country is known.
+     */
+    public function preferredCurrency(): string
+    {
+        return match ($this->country) {
+            null => (string) config('billing.currency'),
+            Countries::MALAYSIA => 'myr',
+            default => 'usd',
+        };
     }
 
     /**

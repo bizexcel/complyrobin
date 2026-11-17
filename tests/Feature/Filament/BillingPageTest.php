@@ -19,12 +19,15 @@ use Livewire\Livewire;
 beforeEach(function (): void {
     $this->travelTo(now()->parse('2026-11-17 09:34:30', 'UTC'));
     config([
-        'billing.prices.credentials' => ['monthly' => 'pri_sgpvng7wjho8pcx79vl', 'yearly' => 'pri_sgpvng7wjho8pcxh39u'],
-        'billing.prices.bcms' => ['monthly' => null, 'yearly' => null],
-        'billing.prices.isms' => ['monthly' => null, 'yearly' => null],
+        'billing.prices.credentials' => [
+            'myr' => ['monthly' => 'pri_sgpvng7wjho8pcx79vl', 'yearly' => 'pri_sgpvng7wjho8pcxh39u'],
+            'usd' => ['monthly' => 'pri_usd_monthly_not_recorded', 'yearly' => null],
+        ],
+        'billing.prices.bcms' => ['myr' => ['monthly' => null, 'yearly' => null], 'usd' => ['monthly' => null, 'yearly' => null]],
+        'billing.prices.isms' => ['myr' => ['monthly' => null, 'yearly' => null], 'usd' => ['monthly' => null, 'yearly' => null]],
     ]);
     $this->owner = User::factory()->create(['email' => 'owner@acme.test']);
-    $this->organisation = app(CreateOrganisation::class)->handle($this->owner, 'Acme');
+    $this->organisation = app(CreateOrganisation::class)->handle($this->owner, 'Acme', 'MY');
 });
 
 function billingAction(string $name): TestAction
@@ -73,12 +76,41 @@ it('sends the organisation to Airwallex\'s checkout, coming back to this page', 
         ->assertRedirect(airwallexFixture('billing_checkouts.create')['url']);
 
     $checkout = Http::recorded(fn (Request $request): bool => str_ends_with($request->url(), 'billing_checkouts/create'))->first()[0];
-    expect($checkout['line_items'])->toBe([['price_id' => 'pri_sgpvng7wjho8pcxh39u', 'quantity' => 1]])
+    expect($checkout['currency'])->toBe('MYR')
+        ->and($checkout['line_items'])->toBe([['price_id' => 'pri_sgpvng7wjho8pcxh39u', 'quantity' => 1]])
         ->and($checkout['subscription_data']['trial_ends_at'])->toBe('2026-12-01T09:34:30+0000')
         ->and($checkout['subscription_data']['metadata'])->toMatchArray(['organisation_id' => $this->organisation->id, 'type' => 'credentials'])
         ->and($checkout['success_url'])->toBe(Billing::getUrl().'?checkout=success')
         ->and($checkout['back_url'])->toBe(Billing::getUrl().'?checkout=cancelled');
     Http::assertSent(fn (Request $request): bool => str_ends_with($request->url(), 'billing_customers/create') && $request['email'] === 'owner@acme.test');
+});
+
+it('charges an organisation outside Malaysia in US dollars, offering only the plans priced in them', function (): void {
+    fakeAirwallex([
+        'billing_customers/create' => ['billing_customers.create', 201],
+        'billing_checkouts/create' => ['billing_checkouts.create', 201],
+    ]);
+    Tenancy::run($this->organisation, fn () => $this->organisation->forceFill(['country' => 'SG'])->save());
+    openOrganisationAs($this->owner, $this->organisation->fresh());
+
+    Livewire::test(Billing::class)
+        ->assertDontSee('Pay yearly')
+        ->callAction(billingAction('subscribe-credentials-monthly'));
+
+    $checkout = Http::recorded(fn (Request $request): bool => str_ends_with($request->url(), 'billing_checkouts/create'))->first()[0];
+    expect($checkout['currency'])->toBe('USD')
+        ->and($checkout['line_items'][0]['price_id'])->toBe('pri_usd_monthly_not_recorded');
+    Http::assertSent(fn (Request $request): bool => str_ends_with($request->url(), 'billing_customers/create') && $request['default_billing_currency'] === 'USD');
+});
+
+it('asks for the organisation\'s country before offering a plan', function (): void {
+    fakeAirwallex([]);
+    Tenancy::run($this->organisation, fn () => $this->organisation->forceFill(['country' => null])->save());
+    openOrganisationAs($this->owner, $this->organisation->fresh());
+
+    Livewire::test(Billing::class)
+        ->assertSee('Choose your organisation\'s country before you subscribe.')
+        ->assertDontSee('Pay monthly');
 });
 
 it('says so when Airwallex can\'t start a checkout', function (): void {

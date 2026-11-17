@@ -15,10 +15,10 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\ValidationException;
 
 beforeEach(function (): void {
-    config(['billing.prices.credentials' => ['monthly' => 'pri_sgpvng7wjho8pcx79vl', 'yearly' => null]]);
+    config(['billing.prices.credentials' => ['myr' => ['monthly' => 'pri_sgpvng7wjho8pcx79vl', 'yearly' => null], 'usd' => ['monthly' => null, 'yearly' => null]]]);
     fakeAirwallex([]);
     $this->owner = User::factory()->create();
-    $this->organisation = app(CreateOrganisation::class)->handle($this->owner, 'Acme');
+    $this->organisation = app(CreateOrganisation::class)->handle($this->owner, 'Acme', 'MY');
 });
 
 function startCheckout(User $actor, string $interval = 'monthly'): mixed
@@ -36,6 +36,19 @@ it('needs the billing permission', function (): void {
 it('refuses a plan that isn\'t on sale', function (): void {
     expect(fn (): mixed => startCheckout($this->owner, 'yearly'))->toThrow(ValidationException::class, 'That plan isn\'t on sale yet.')
         ->and(fn (): mixed => startCheckout($this->owner, 'weekly'))->toThrow(ValidationException::class);
+});
+
+it('needs the organisation\'s country, which decides the currency', function (): void {
+    Tenancy::run($this->organisation, fn () => $this->organisation->forceFill(['country' => null])->save());
+
+    expect(fn (): mixed => startCheckout($this->owner))->toThrow(ValidationException::class, 'Choose your organisation\'s country in Organisation settings first.');
+    Http::assertNothingSent();
+});
+
+it('refuses a plan with no price in the organisation\'s currency', function (): void {
+    Tenancy::run($this->organisation, fn () => $this->organisation->forceFill(['country' => 'US'])->save());
+
+    expect(fn (): mixed => startCheckout($this->owner))->toThrow(ValidationException::class, 'That plan isn\'t on sale yet.');
 });
 
 it('refuses a second subscription to the same module', function (): void {

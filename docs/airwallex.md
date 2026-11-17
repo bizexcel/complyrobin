@@ -20,14 +20,16 @@ Keys from one environment don't work in the other. Use demo for local, preview a
 | `AIRWALLEX_CLIENT_ID` | Identifies your account to the API | Dashboard → Settings → Developer → **API keys** → Client ID | No, but keep it with the key |
 | `AIRWALLEX_API_KEY` | Lets ComplyRobin log in to the API | Same page → API key (shown once when you create it) | **Yes** |
 | `AIRWALLEX_WEBHOOK_SECRET` | Proves a webhook really came from Airwallex | Dashboard → Settings → Developer → **Webhooks** → your endpoint → secret | **Yes** |
-| `AIRWALLEX_PRICE_CREDENTIALS_MONTHLY` | The monthly price of the credentials register (`pri_…`) | Dashboard → Billing → **Products** → "ComplyRobin Team" → monthly price | No |
-| `AIRWALLEX_PRICE_CREDENTIALS_YEARLY` | The yearly price (`pri_…`) | Same product → yearly price | No |
+| `AIRWALLEX_PRICE_CREDENTIALS_MYR_MONTHLY`, `..._MYR_YEARLY` | The ringgit prices of the credentials register (`pri_…`), for organisations in Malaysia | Dashboard → Billing → **Products** → "ComplyRobin Team" → its MYR prices | No |
+| `AIRWALLEX_PRICE_CREDENTIALS_USD_MONTHLY`, `..._USD_YEARLY` | The US dollar prices (`pri_…`), for organisations everywhere else | Same product → its USD prices | No |
 | `BILLING_CURRENCY` | `myr` (the default) | | No |
 | `BILLING_TRIAL_DAYS` | `14` (the default) | The free trial on an organisation's first subscription to a module. `0` turns trials off. | No |
 
 ComplyRobin never sees a bearer token from you: it logs in with the client ID and API key and keeps the token it gets back until shortly before it expires.
 
-Leave a price variable empty and the billing page doesn't offer that plan. The BCMS and ISMS prices (`AIRWALLEX_PRICE_BCMS_*`, `AIRWALLEX_PRICE_ISMS_*`) stay empty until those modules are sold.
+**Which currency?** Each organisation chooses its country at signup (or in Organisation settings). Organisations in Malaysia pay in ringgit and every other country pays in US dollars. The billing page asks for the country before offering a plan.
+
+Leave a price variable empty and the billing page doesn't offer that plan in that currency. The BCMS and ISMS prices (`AIRWALLEX_PRICE_BCMS_*`, `AIRWALLEX_PRICE_ISMS_*`) stay empty until those modules are sold.
 
 ## 1. API key
 
@@ -43,7 +45,7 @@ Leave a price variable empty and the billing page doesn't offer that plan. The B
 Make these once per environment, in the dashboard, not from code:
 
 1. **Products** → new product named brand first, **"ComplyRobin Team"**, with the metadata `app` = `complyrobin`. The brand name and tag keep it apart from other apps' products on the same account.
-2. Add a monthly and a yearly recurring price in MYR. A price can't be changed once someone has paid it, so a new amount means a new price and new ids here.
+2. Add a monthly and a yearly recurring price in MYR, and the same two in USD. A price can't be changed once someone has paid it, so a new amount means a new price and new ids here.
 3. Copy the two `pri_…` ids into the price variables.
 
 The demo environment already has these, made in the sandbox test. Their amounts (MYR 49 and 490) are placeholders:
@@ -51,8 +53,10 @@ The demo environment already has these, made in the sandbox test. Their amounts 
 | | Demo id |
 |---|---|
 | Product "ComplyRobin Team" | `prd_sgpvng7wjho8pct0ieo` |
-| Monthly price | `pri_sgpvng7wjho8pcx79vl` |
-| Yearly price | `pri_sgpvng7wjho8pcxh39u` |
+| Monthly price, MYR | `pri_sgpvng7wjho8pcx79vl` |
+| Yearly price, MYR | `pri_sgpvng7wjho8pcxh39u` |
+
+There are no USD prices in demo yet: add them in the dashboard and copy their ids.
 
 ## 3. Webhook
 

@@ -74,7 +74,7 @@ trait ManagesCustomer
         }
 
         $options['type'] ??= 'BUSINESS';
-        $options['default_billing_currency'] ??= strtoupper((string) config('billing.currency'));
+        $options['default_billing_currency'] ??= strtoupper($this->preferredCurrency());
 
         // Here we will create the customer instance on Airwallex and store the ID of the
         // user from Airwallex. This ID will correspond with the Airwallex user instances
@@ -208,5 +208,13 @@ trait ManagesCustomer
             'address' => $this->airwallexAddress(),
             'metadata' => $this->airwallexMetadata(),
         ]));
+    }
+
+    /**
+     * Get the Airwallex supported currency used by the customer.
+     */
+    public function preferredCurrency(): string
+    {
+        return (string) config('billing.currency');
     }
 }

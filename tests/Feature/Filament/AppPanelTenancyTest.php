@@ -66,7 +66,8 @@ it('creates an organisation from the registration page and opens it', function (
         ->assertHasNoFormErrors()
         ->assertRedirect('/acme-berhad');
 
-    expect($user->organisations()->pluck('slug')->all())->toBe(['acme-berhad']);
+    expect($user->organisations()->pluck('slug')->all())->toBe(['acme-berhad'])
+        ->and($user->organisations()->sole()->country)->toBe('MY');
 });
 
 it('reserves the first path segment of every route, so no organisation slug can shadow one', function (): void {
