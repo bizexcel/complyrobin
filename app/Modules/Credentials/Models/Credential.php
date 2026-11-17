@@ -20,6 +20,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
@@ -79,6 +80,16 @@ class Credential extends Model
     public function rotations(): HasMany
     {
         return $this->hasMany(CredentialRotation::class);
+    }
+
+    /**
+     * How a runner rotates this credential, when it does.
+     *
+     * @return HasOne<AutomaticRotation, $this>
+     */
+    public function automaticRotation(): HasOne
+    {
+        return $this->hasOne(AutomaticRotation::class);
     }
 
     public function status(?CarbonInterface $now = null, ?string $timezone = null): CredentialStatus
