@@ -7,8 +7,8 @@
     <meta charset="utf-8">
     <title>Rotation evidence: {{ $report->organisation }}</title>
     <style>
-        body { font-family: DejaVu Sans, sans-serif; font-size: 9px; color: #0F172A; }
-        .brand { border-bottom: 2px solid #C2410C; padding-bottom: 6px; margin-bottom: 10px; }
+        body { font-family: DejaVu Sans, sans-serif; font-size: 9px; color: {{ \App\Filament\Brand::INK }}; }
+        .brand { border-bottom: 2px solid {{ \App\Filament\Brand::RUST }}; padding-bottom: 6px; margin-bottom: 10px; }
         h1 { font-size: 16px; margin: 0 0 4px; }
         h2 { font-size: 12px; margin: 16px 0 6px; }
         p { margin: 0 0 4px; }
@@ -22,7 +22,7 @@
 </head>
 <body>
     {{-- The logo travels inside the file: PDF renderers don't fetch outside assets. --}}
-    <div class="brand"><img src="data:image/png;base64,{{ base64_encode((string) file_get_contents(public_path('images/brand/complyrobin-logo.png'))) }}" alt="ComplyRobin" style="height: 22px;"></div>
+    <div class="brand"><img src="data:image/png;base64,{{ base64_encode((string) file_get_contents(public_path('images/brand/complyrobin-logo-small.png'))) }}" alt="ComplyRobin" style="height: 22px;"></div>
     <h1>Rotation evidence report</h1>
     <p><strong>{{ $report->organisation }}</strong></p>
     <p>Period: {{ $report->from->format('j M Y') }} to {{ $report->to->format('j M Y H:i') }} ({{ $report->timezone }})</p>

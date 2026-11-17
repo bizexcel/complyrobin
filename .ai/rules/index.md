@@ -7,6 +7,7 @@ Before planning or editing, find the row whose globs match the file's path and r
 | app/Core/Access/**, app/Core/Identity/Actions/**, app/Filament/Admin/**, app/Core/Entitlements/**, database/seeders/PermissionSeeder.php | .ai/rules/access.md |
 | app/**/Actions/** | .ai/rules/actions.md |
 | app/Billing/**, config/billing.php | .ai/rules/billing.md |
+| app/Filament/**, app/Providers/Filament/**, app/**/Notifications/**, resources/views/**, resources/css/**, lang/**, public/images/brand/** | .ai/rules/brand.md |
 | app/Filament/**, app/Providers/Filament/** | .ai/rules/filament.md |
 | app/Core/Files/**, config/filesystems.php, config/media-library.php | .ai/rules/files.md |
 | routes/**, app/Http/** | .ai/rules/http-routing.md |

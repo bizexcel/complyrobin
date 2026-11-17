@@ -25,6 +25,8 @@ ComplyRobin is a multi-tenant SaaS by Bizexcel. It starts as a SaaS credentials 
 
 Before planning or editing a file, read `.ai/rules/index.md` and follow the rule file whose globs match it. Change a convention → update its rule in the same change.
 
+Anything a customer sees or reads (screens, emails, PDFs, error messages, wherever the text is written) follows `.ai/rules/brand.md`: colours by Filament name, the logo files as they are, and the voice and wording rules.
+
 ## Commands
 
 `composer lint` (Pint) · `composer analyse` (Larastan) · `composer refactor` (Rector dry run) · `composer test` (Pest, against the `complyrobin_test` database).

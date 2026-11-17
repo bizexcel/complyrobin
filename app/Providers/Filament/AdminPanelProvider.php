@@ -16,12 +16,12 @@ use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
 use Filament\View\PanelsRenderHook;
 use Filament\Widgets\AccountWidget;
+use Illuminate\Contracts\View\View;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
-use Illuminate\Support\HtmlString;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 class AdminPanelProvider extends PanelProvider
@@ -35,15 +35,14 @@ class AdminPanelProvider extends PanelProvider
             ->databaseNotifications()
             ->multiFactorAuthentication([AppAuthentication::make()->recoverable(), EmailAuthentication::make()], isRequired: true)
             ->brandName('ComplyRobin Admin')
-            ->brandLogo(fn (): HtmlString => Brand::adminLogo())
-            ->darkModeBrandLogo(fn (): HtmlString => Brand::adminLogo(dark: true))
+            ->brandLogo(fn (): View => view('filament.admin.logo', ['dark' => false]))
+            ->darkModeBrandLogo(fn (): View => view('filament.admin.logo', ['dark' => true]))
             ->brandLogoHeight('2rem')
             ->favicon(fn (): string => asset('favicon.svg'))
             ->font(Brand::FONT)
-            ->renderHook(PanelsRenderHook::HEAD_END, fn (): HtmlString => Brand::headTags())
-            ->colors([
-                'primary' => Color::Slate,
-            ])
+            ->renderHook(PanelsRenderHook::HEAD_END, fn (): View => view('filament.brand.head'))
+            // The staff panel is slate, never rust, so it can't be mistaken for the customer app.
+            ->colors([...Brand::colors(), 'primary' => Color::Slate])
             ->discoverResources(in: app_path('Filament/Admin/Resources'), for: 'App\Filament\Admin\Resources')
             ->discoverPages(in: app_path('Filament/Admin/Pages'), for: 'App\Filament\Admin\Pages')
             ->pages([

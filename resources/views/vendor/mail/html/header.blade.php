@@ -3,7 +3,7 @@
 <tr>
 <td class="header">
 <a href="{{ $url }}" style="display: inline-block;">
-<img src="{{ asset('images/brand/complyrobin-logo.png') }}" class="logo" alt="ComplyRobin" width="215" height="40" style="height: 40px; width: 215px; max-height: 40px;">
+<img src="{{ asset('images/brand/complyrobin-logo-small.png') }}" class="logo" alt="ComplyRobin" width="216" height="40" style="height: 40px; width: 216px; max-height: 40px;">
 </a>
 </td>
 </tr>
