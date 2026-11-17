@@ -19,6 +19,7 @@ use Illuminate\Support\Carbon;
  * @property string $token
  * @property Carbon|null $last_seen_at
  * @property Carbon|null $revoked_at
+ * @property Carbon|null $created_at
  */
 #[Fillable(['name', 'token'])]
 #[Hidden(['token'])]

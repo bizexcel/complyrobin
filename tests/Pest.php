@@ -172,7 +172,7 @@ function staffRoleChanges(): EloquentCollection
  */
 function onTeamPlan(Organisation $organisation, ?Carbon $endsAt = null): void
 {
-    app(GrantModule::class)->handle(User::factory()->create(['platform_role' => PlatformRole::Admin]), $organisation, Module::Credentials, now()->subDays(30), $endsAt);
+    app(GrantModule::class)->handle(User::factory()->create(['platform_role' => PlatformRole::Admin]), $organisation, Module::Credentials, now()->subDays(200), $endsAt);
 }
 
 /**

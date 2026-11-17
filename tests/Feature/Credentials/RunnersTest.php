@@ -4,7 +4,6 @@ use App\Core\Access\Enums\SystemRole;
 use App\Core\Identity\Models\User;
 use App\Core\Organisations\Actions\CreateOrganisation;
 use App\Core\Tenancy\Facades\Tenancy;
-use App\Modules\Credentials\Actions\CreateRunner;
 use App\Modules\Credentials\Actions\RevokeRunner;
 use App\Modules\Credentials\Models\Runner;
 use App\Modules\Credentials\Support\RunnerTokens;

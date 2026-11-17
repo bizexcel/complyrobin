@@ -9,6 +9,8 @@ use App\Core\People\Models\Person;
 use App\Modules\Credentials\Models\Application;
 use App\Modules\Credentials\Models\Credential;
 use App\Modules\Credentials\Models\CredentialRotation;
+use App\Modules\Credentials\Models\RotationRun;
+use App\Modules\Credentials\Models\Runner;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
@@ -42,7 +44,7 @@ final readonly class RotationEvidenceReport
         $local = fn (CarbonInterface $time): string => CarbonImmutable::instance($time)->setTimezone($timezone)->format('Y-m-d H:i');
 
         $rotations = CredentialRotation::query()
-            ->with(['credential' => fn ($query) => $query->withTrashed()->with('application'), 'rotatedBy', 'media'])
+            ->with(['credential' => fn ($query) => $query->withTrashed()->with('application'), 'rotatedBy', 'run.runner', 'media'])
             ->whereBetween('rotated_at', [$from, $to])
             ->orderBy('rotated_at')
             ->get()
@@ -58,7 +60,7 @@ final readonly class RotationEvidenceReport
                     'rotated' => $local($rotation->rotated_at),
                     'recorded' => $rotation->created_at instanceof CarbonInterface ? $local($rotation->created_at) : '',
                     'on_time' => $rotation->isOnTime($timezone),
-                    'rotated_by' => $rotation->rotatedBy instanceof User ? $rotation->rotatedBy->name : '',
+                    'rotated_by' => self::rotatedBy($rotation),
                     'evidence' => $rotation->media->map(fn (Media $file): string => $file->file_name)->values()->all(),
                     'notes' => (string) $rotation->notes,
                 ];
@@ -78,6 +80,18 @@ final readonly class RotationEvidenceReport
             ])->values()->all();
 
         return new self($organisation->name, $timezone, $from->setTimezone($timezone), $to->setTimezone($timezone), CarbonImmutable::instance($now)->setTimezone($timezone), $rotations, $overdue);
+    }
+
+    /**
+     * Who rotated it: the member, or the runner that did it automatically.
+     */
+    private static function rotatedBy(CredentialRotation $rotation): string
+    {
+        if ($rotation->run instanceof RotationRun) {
+            return $rotation->run->runner instanceof Runner ? "Automatic rotation ({$rotation->run->runner->name})" : 'Automatic rotation';
+        }
+
+        return $rotation->rotatedBy instanceof User ? $rotation->rotatedBy->name : '';
     }
 
     public function onTime(): int

@@ -104,7 +104,7 @@ it('refuses a report that carries something that looks like a key, and keeps it 
 
     expect($run->refresh()->status)->toBe(RotationRunStatus::Claimed)
         ->and(rotationsOf($this->credential))->toBe(0)
-        ->and(DB::connection('pgsql_migrator')->table('activities')->whereRaw("properties::text like ? or attribute_changes::text like ?", ["%{$key}%", "%{$key}%"])->count())->toBe(0);
+        ->and(DB::connection('pgsql_migrator')->table('activities')->whereRaw('properties::text like ? or attribute_changes::text like ?', ["%{$key}%", "%{$key}%"])->count())->toBe(0);
 })->with([
     'as the new key id' => ['new_key.id', false],
     'as the hint' => ['new_key.hint', false],
