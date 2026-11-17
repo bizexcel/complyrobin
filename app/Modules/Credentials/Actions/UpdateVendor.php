@@ -10,7 +10,6 @@ use App\Modules\Credentials\VendorRules;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\ValidationException;
 
 final class UpdateVendor
 {
@@ -21,7 +20,6 @@ final class UpdateVendor
      * @param  array<string, mixed>  $data
      *
      * @throws AuthorizationException
-     * @throws ValidationException
      */
     public function handle(User $staff, Vendor $vendor, array $data): Vendor
     {

@@ -31,6 +31,7 @@ class VendorsTable
             ])
             ->recordActions([
                 EditAction::make()
+                    ->visible(fn (): bool => Actor::isAdmin())
                     ->using(fn (Vendor $record, array $data): Vendor => app(UpdateVendor::class)->handle(Actor::current(), $record, $data)),
             ]);
     }

@@ -16,7 +16,7 @@ return new class extends Migration
             $table->text('to');
             $table->string('subject')->nullable();
             $table->string('kind')->nullable();
-            $table->string('message_id')->nullable();
+            $table->string('provider_reference')->nullable();
             $table->timestampTz('created_at')->useCurrent();
 
             $table->index('created_at');

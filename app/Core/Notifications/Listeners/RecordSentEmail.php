@@ -28,7 +28,7 @@ final class RecordSentEmail
             'to' => $to,
             'subject' => Str::limit((string) $message->getSubject(), 250, '…'),
             'kind' => is_string($kind) ? $kind : null,
-            'message_id' => $event->sent->getMessageId(),
+            'provider_reference' => $event->sent->getMessageId(),
         ]));
     }
 }

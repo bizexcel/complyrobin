@@ -15,10 +15,10 @@ use Illuminate\Support\Carbon;
  * @property string $to comma-separated addresses
  * @property string|null $subject
  * @property string|null $kind the notification or mailable class
- * @property string|null $message_id the mail provider's id, to trace a send with them
+ * @property string|null $provider_reference the mail provider's id, to trace a send with them
  * @property Carbon $created_at
  */
-#[Fillable(['to', 'subject', 'kind', 'message_id'])]
+#[Fillable(['to', 'subject', 'kind', 'provider_reference'])]
 class SentEmail extends Model
 {
     use HasUuids, UsesTenancyConnection;

@@ -24,6 +24,7 @@ class ListVendors extends ListRecords
         return [
             CreateAction::make()
                 ->label('New vendor')
+                ->visible(fn (): bool => Actor::isAdmin())
                 ->using(fn (array $data): Vendor => app(CreateVendor::class)->handle(Actor::current(), $data)),
         ];
     }

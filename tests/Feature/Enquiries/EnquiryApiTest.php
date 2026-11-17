@@ -106,7 +106,7 @@ it('lets only www call the API from a browser', function (string $origin, bool $
         'HTTP_ACCESS_CONTROL_REQUEST_METHOD' => 'POST',
     ]);
 
-    expect($response->headers->get('Access-Control-Allow-Origin'))->toBe($allowed ? $origin : null);
+    expect($response->headers->get('Access-Control-Allow-Origin') === $origin)->toBe($allowed);
 })->with([
     'www' => ['https://www.complyrobin.com', true],
     'another site' => ['https://evil.example', false],

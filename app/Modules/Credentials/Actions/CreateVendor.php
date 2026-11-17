@@ -9,7 +9,6 @@ use App\Modules\Credentials\Models\Vendor;
 use App\Modules\Credentials\VendorRules;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\ValidationException;
 
 final class CreateVendor
 {
@@ -19,7 +18,6 @@ final class CreateVendor
      * @param  array<string, mixed>  $data
      *
      * @throws AuthorizationException
-     * @throws ValidationException
      */
     public function handle(User $staff, array $data): Vendor
     {
