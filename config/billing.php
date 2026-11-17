@@ -63,6 +63,32 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Prices
+    |--------------------------------------------------------------------------
+    |
+    | The Airwallex price ids each module is sold at, by billing interval.
+    | Products and prices are made once in the Airwallex dashboard; an
+    | empty price id means that plan isn't offered on the billing page.
+    |
+    */
+
+    'prices' => [
+        'credentials' => [
+            'monthly' => env('AIRWALLEX_PRICE_CREDENTIALS_MONTHLY'),
+            'yearly' => env('AIRWALLEX_PRICE_CREDENTIALS_YEARLY'),
+        ],
+        'bcms' => [
+            'monthly' => env('AIRWALLEX_PRICE_BCMS_MONTHLY'),
+            'yearly' => env('AIRWALLEX_PRICE_BCMS_YEARLY'),
+        ],
+        'isms' => [
+            'monthly' => env('AIRWALLEX_PRICE_ISMS_MONTHLY'),
+            'yearly' => env('AIRWALLEX_PRICE_ISMS_YEARLY'),
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Currency
     |--------------------------------------------------------------------------
     |

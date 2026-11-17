@@ -71,6 +71,11 @@ Before the first deploy, set the three passwords (step 3): strong ones from a pa
 | `MAIL_FROM_ADDRESS` | `hello@complyrobin.com` | Set by the Resend integration; check it matches. |
 | `CHAT_CHANNELS` | *(empty)* | Launch is email, in-app and calendar only. Later: `slack,teams` and/or `telegram`. |
 | `TELEGRAM_BOT_TOKEN` | secret, later | Only when Telegram is switched on. |
+| `AIRWALLEX_ENV` | `production` (`demo` on staging) | Billing. Every Airwallex variable is explained in [Setting up Airwallex billing](airwallex.md). |
+| `AIRWALLEX_CLIENT_ID` | from Airwallex | |
+| `AIRWALLEX_API_KEY` | secret | |
+| `AIRWALLEX_WEBHOOK_SECRET` | secret | Without it, every webhook is refused. |
+| `AIRWALLEX_PRICE_CREDENTIALS_MONTHLY`, `AIRWALLEX_PRICE_CREDENTIALS_YEARLY` | `pri_…` ids | Empty means the plan isn't offered. |
 
 **Never set** `DB_DIRECT_HOST` or `DB_DIRECT_PORT` on Cloud: Cloud works out the direct host itself. Never set per-file visibility on storage either.
 
