@@ -2,8 +2,10 @@
 
 namespace App\Core\Organisations\Models;
 
+use App\Billing\Billable;
 use App\Core\Audit\Concerns\LogsTenantActivity;
 use App\Core\Identity\Models\User;
+use App\Core\Organisations\Support\Countries;
 use App\Core\Tenancy\Concerns\UsesTenancyConnection;
 use App\Core\Tenancy\Exceptions\TenantMismatch;
 use App\Core\Tenancy\Facades\Tenancy;
@@ -15,6 +17,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
@@ -27,13 +30,15 @@ use Spatie\MediaLibrary\InteractsWithMedia;
  * @property array<string, mixed>|null $settings
  * @property string|null $root_id
  * @property list<string> $previous_slugs slugs it used before; they redirect here and nobody else may take them
+ * @property Carbon|null $trial_ends_at Cashier's generic trial, on the root organisation
+ * @property string|null $country ISO 3166-1 alpha-2; decides the billing currency
  */
-#[Fillable(['name', 'slug', 'timezone', 'parent_id', 'root_id', 'settings'])]
+#[Fillable(['name', 'slug', 'timezone', 'country', 'parent_id', 'root_id', 'settings'])]
 #[UseFactory(OrganisationFactory::class)]
 class Organisation extends Model implements HasMedia
 {
     /** @use HasFactory<OrganisationFactory> */
-    use HasFactory, HasUuids, InteractsWithMedia, LogsTenantActivity, SoftDeletes, UsesTenancyConnection;
+    use Billable, HasFactory, HasUuids, InteractsWithMedia, LogsTenantActivity, SoftDeletes, UsesTenancyConnection;
 
     /**
      * Only changes are audited: an organisation is created before it has an audit trail to write to.
@@ -71,6 +76,29 @@ class Organisation extends Model implements HasMedia
     }
 
     /**
+     * Get the Airwallex supported currency used by the customer: ringgit for a Malaysian organisation, US dollars for
+     * one based anywhere else, and the configured currency until its country is known.
+     */
+    public function preferredCurrency(): string
+    {
+        return match ($this->country) {
+            null => (string) config('billing.currency'),
+            Countries::MALAYSIA => 'myr',
+            default => 'usd',
+        };
+    }
+
+    /**
+     * Tags the organisation's Airwallex customer, whose account may also hold other apps' customers.
+     *
+     * @return array<string, string>
+     */
+    public function airwallexMetadata(): array
+    {
+        return ['app' => 'complyrobin', 'organisation_id' => $this->getKey()];
+    }
+
+    /**
      * @return BelongsToMany<User, $this, Membership>
      */
     public function users(): BelongsToMany
@@ -94,6 +122,7 @@ class Organisation extends Model implements HasMedia
         return [
             'settings' => 'array',
             'previous_slugs' => 'array',
+            'trial_ends_at' => 'datetime',
         ];
     }
 }

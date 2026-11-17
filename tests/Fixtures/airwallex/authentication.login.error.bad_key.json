@@ -1,0 +1,8 @@
+{
+  "code": "credentials_invalid",
+  "details": [
+    "Access Denied"
+  ],
+  "message": "UNAUTHORIZED",
+  "source": ""
+}

@@ -1,0 +1,59 @@
+{
+  "automatic_tax_status": "DISABLED",
+  "back_url": "https://app.complyrobin.com/billing",
+  "billing_customer": {
+    "address": {
+      "city": "Kuala Lumpur",
+      "country_code": "MY",
+      "postcode": "50450",
+      "street": "1 Jalan Test"
+    },
+    "email": "billing-spike@example.com",
+    "name": "Spike Test Sdn Bhd",
+    "type": "BUSINESS"
+  },
+  "billing_customer_id": "bcus_sgpv8sltmho8pd165e4",
+  "cancelled_at": "2026-11-17T09:34:29+0000",
+  "created_at": "2026-11-17T09:34:29+0000",
+  "currency": "MYR",
+  "customer_data_collection": {
+    "enabled": false
+  },
+  "discounts": [],
+  "enable_automatic_tax": false,
+  "expires_at": "2026-12-17T09:34:29+0000",
+  "hosted_completion_page": {
+    "display": true
+  },
+  "id": "bco_sgpv5qsx9ho8pdt7ern",
+  "legal_entity_id": "le_T_IreKVpOp2HYkC0KbdzFQ",
+  "line_items": [
+    {
+      "discounts": [],
+      "price_id": "pri_sgpvng7wjho8pcx79vl",
+      "quantity": 1
+    }
+  ],
+  "linked_payment_account_id": "acct_joe-kjQKM1-kSRtGjTX51w",
+  "mode": "SUBSCRIPTION",
+  "payment_options": {
+    "payment_method_types": [
+      "card"
+    ]
+  },
+  "status": "CANCELLED",
+  "subscription_data": {
+    "days_until_due": 0,
+    "default_tax_percent": 0.0,
+    "metadata": {
+      "app": "complyrobin"
+    },
+    "recurring": {
+      "period": 1,
+      "period_unit": "MONTH"
+    }
+  },
+  "success_url": "https://app.complyrobin.com/billing/success",
+  "ui_mode": "HOSTED",
+  "updated_at": "2026-11-17T09:34:29+0000"
+}
