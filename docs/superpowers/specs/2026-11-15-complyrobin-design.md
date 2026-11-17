@@ -485,6 +485,13 @@ Every phase must pass Pest, Larastan, Pint and arch tests, and is deployed to a 
 **Phase 2b: Automatic rotation** (the ComplyRobin side; plan `docs/superpowers/plans/2026-11-17-automatic-rotation-runner-api.md`)
 - Runners, automatic rotation settings per credential, rotation runs, the two runner endpoints, the screens.
 - *Exit:* a report that carries a key is refused and nothing is stored; a repeated or late report never records twice; a credential is never handed out twice while a run is open, nor within 6 hours of a failure; a downgrade, revocation or deletion stops new work; another organisation's token or run is refused; the isolation suite covers the three tables.
+- **Status (2026-11-17): built.** Proved by:
+  - A report carrying a key: `RotationRunReportsTest` "refuses a report that carries something that looks like a key, and keeps it nowhere".
+  - Lost or late reports: `RotationRunReportsTest` "records nothing new when the same report arrives twice" and "accepts a late success for a run it had given up on".
+  - Double claims and retry storms: `RotationRunClaimsTest` "never hands out the same credential twice while a run is open" and "gives up on a run after an hour, tells the owner, and retries after six hours".
+  - Downgrade, revocation, deletion: `RotationRunClaimsTest` "hands out nothing once the organisation is back on Free" and "hands out nothing for a revoked or deleted credential"; `RotationRunReportsTest` "refuses a success for a credential revoked meanwhile, and marks the run failed"; `RunnerApiTest` 401 for a revoked token.
+  - Another organisation: `RunnerApiTest` "answers 401 when one organisation's token is used on another" and "answers 404 when another organisation's run is reported"; the tables are covered by the tenancy suite through `appModels()`.
+  - The runner itself (Plan 2) is not built yet.
 
 **Phase 3: Billing, back office and MVP launch** (formerly Phases 5–6, brought forward so the MVP can be sold)
 - The Cashier-style Airwallex layer (section 5), with plans for the `credentials` module (e.g. a free tier capped by credential count, then paid tiers).

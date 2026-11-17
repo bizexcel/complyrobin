@@ -33,8 +33,6 @@ final readonly class ReportRotationRun
      *
      * @param  array<string, mixed>  $data
      * @return array{status: int, body: array<string, mixed>}|null
-     *
-     * @throws ValidationException
      */
     public function handle(Organisation $organisation, string $token, array $data): ?array
     {
