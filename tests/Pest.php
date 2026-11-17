@@ -173,6 +173,22 @@ function staffRoleChanges(): EloquentCollection
 }
 
 /**
+ * Run the callback as the staff member on the staff panel, as RunAsPlatform runs each of its requests.
+ *
+ * @template TReturn
+ *
+ * @param  Closure(): TReturn  $callback
+ * @return TReturn
+ */
+function asStaff(User $staff, Closure $callback): mixed
+{
+    test()->actingAs($staff);
+    Filament::setCurrentPanel('admin');
+
+    return Tenancy::bypass('test: staff panel', $callback);
+}
+
+/**
  * Put the organisation on Team (the credentials module), optionally until a given time.
  */
 function onTeamPlan(Organisation $organisation, ?Carbon $endsAt = null): void

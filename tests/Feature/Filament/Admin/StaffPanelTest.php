@@ -50,7 +50,7 @@ it('lets staff grant a module to an organisation', function (): void {
 
 it('keeps customers out of the staff panel', function (string $path): void {
     $this->actingAs(User::factory()->create())->get($path)->assertForbidden();
-})->with(['/admin', '/admin/organisations', '/admin/users', '/admin/staff']);
+})->with(['/admin', '/admin/organisations', '/admin/users', '/admin/staff', '/admin/vendors', '/admin/enquiries', '/admin/sent-emails']);
 
 it('lets Support look at organisations but not grant modules', function (): void {
     $support = User::factory()->create(['platform_role' => PlatformRole::Support]);

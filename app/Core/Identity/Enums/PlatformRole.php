@@ -23,7 +23,7 @@ enum PlatformRole: string
     {
         return match ($this) {
             self::Admin => 'Everything in the staff panel, including plans and staff',
-            self::Support => 'Can look at organisations and users, but not change them',
+            self::Support => 'Can look at everything in the staff panel, but not change it',
         };
     }
 }

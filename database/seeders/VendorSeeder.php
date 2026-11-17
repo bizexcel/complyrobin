@@ -7,8 +7,10 @@ use App\Modules\Credentials\Models\Vendor;
 use Illuminate\Database\Seeder;
 
 /**
- * The vendor catalogue. Idempotent: upserts by slug on every deploy (as the migrator). A rotation_url is only set
- * where it is the known page for creating and revoking keys; otherwise people start from the website.
+ * The vendors ComplyRobin ships with. Idempotent: runs on every deploy (as the migrator) and adds any vendor whose slug
+ * is missing, but never overwrites one, because staff edit the catalogue in the staff panel (UpdateVendor). To correct
+ * a shipped vendor, edit it there. A rotation_url is only set where it is the known page for creating and revoking
+ * keys; otherwise people start from the website.
  */
 class VendorSeeder extends Seeder
 {
@@ -35,7 +37,7 @@ class VendorSeeder extends Seeder
     public function run(): void
     {
         foreach (self::VENDORS as $vendor) {
-            Vendor::query()->updateOrCreate(['slug' => $vendor['slug']], $vendor);
+            Vendor::query()->firstOrCreate(['slug' => $vendor['slug']], $vendor);
         }
     }
 }

@@ -3,8 +3,11 @@
 namespace App\Providers;
 
 use App\Core\Files\PrivateDisk;
+use App\Core\Notifications\Listeners\RecordSentEmail;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Mail\Events\MessageSent;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Nightwatch\Facades\Nightwatch;
@@ -39,6 +42,14 @@ class AppServiceProvider extends ServiceProvider
             Limit::perMinute(300)->by('calendar-ip:'.$request->ip()),
             Limit::perHour(60)->by('calendar-link:'.hash('sha256', (string) $request->route('token'))),
         ]);
+
+        // The www contact form: a person sends a few messages at most. Turnstile stops bots; this stops floods.
+        RateLimiter::for('enquiries', fn (Request $request): array => [
+            Limit::perMinute(5)->by('enquiry-ip:'.$request->ip()),
+            Limit::perDay(30)->by('enquiry-ip:'.$request->ip()),
+        ]);
+
+        Event::listen(MessageSent::class, RecordSentEmail::class);
 
         // Rotation runners poll every few minutes; a failing runner retrying in a loop is slowed down per token.
         RateLimiter::for('runner-api', fn (Request $request): array => [

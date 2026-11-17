@@ -9,7 +9,8 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * A SaaS vendor from the global catalogue (Laravel Cloud, GitHub, Stripe…). Written only by VendorSeeder.
+ * A SaaS vendor from the global catalogue (Laravel Cloud, GitHub, Stripe…). VendorSeeder adds the ones ComplyRobin ships
+ * with; staff Admins add and edit vendors with CreateVendor and UpdateVendor. The tenant role can only read it.
  *
  * @property string $slug
  * @property string $name
