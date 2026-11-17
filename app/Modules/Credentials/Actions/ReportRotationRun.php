@@ -181,7 +181,7 @@ final readonly class ReportRotationRun
             'status' => RotationRunStatus::Succeeded,
             'finished_at' => now(),
             'credential_rotation_id' => $rotation->getKey(),
-            'new_key_id' => $validated['new_key']['id'],
+            'new_key_identifier' => $validated['new_key']['id'],
             'new_key_hint' => $validated['new_key']['hint'] ?? null,
             'old_keys_expire_at' => $validated['old_keys_expire_at'] ?? null,
             'deployments' => array_values($validated['deployments'] ?? []),

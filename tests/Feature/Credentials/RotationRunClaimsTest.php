@@ -62,7 +62,7 @@ it('hands a due credential to its runner in the agreed shape', function (): void
         'grace_hours' => 48,
     ]]])
         ->and($run->status)->toBe(RotationRunStatus::Claimed)
-        ->and($this->runner->refresh()->last_seen_at)->not->toBeNull();
+        ->and(Tenancy::run($this->organisation, fn (): Runner => $this->runner->refresh())->last_seen_at)->not->toBeNull();
 });
 
 it('hands out a credential due today, but nothing that is not due yet', function (): void {

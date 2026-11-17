@@ -21,7 +21,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon $claimed_at
  * @property Carbon|null $finished_at
  * @property string|null $credential_rotation_id
- * @property string|null $new_key_id
+ * @property string|null $new_key_identifier
  * @property string|null $new_key_hint
  * @property Carbon|null $old_keys_expire_at
  * @property list<string>|null $deployments

@@ -29,7 +29,7 @@ it('creates a runner and shows its token once, storing only a hash', function ()
 it('never writes the token to the audit trail', function (): void {
     ['runner' => $runner, 'token' => $token] = runnerFor($this->organisation, $this->owner);
 
-    $logged = DB::connection('pgsql_migrator')->table('activities')->where('subject_id', $runner->id)->pluck('properties')->implode(' ');
+    $logged = DB::connection('pgsql_migrator')->table('activities')->where('subject_id', $runner->id)->pluck('attribute_changes')->implode(' ');
 
     expect($logged)->toContain('GitHub')
         ->not->toContain($token)
@@ -65,7 +65,7 @@ it('stops finding a revoked runner, one from another organisation, or a malforme
     Tenancy::run($this->organisation, fn (): Runner => app(RevokeRunner::class)->handle($this->owner, $runner));
 
     expect(Tenancy::run($this->organisation, fn (): ?Runner => RunnerTokens::find($token)))->toBeNull()
-        ->and($runner->refresh()->revoked_at)->not->toBeNull();
+        ->and(Tenancy::run($this->organisation, fn (): Runner => $runner->refresh())->revoked_at)->not->toBeNull();
 });
 
 it('lets only members who manage credentials revoke a runner', function (): void {

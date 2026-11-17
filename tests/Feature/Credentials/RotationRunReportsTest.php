@@ -68,6 +68,11 @@ function reportRun(array $report, ?string $token = null, ?Organisation $organisa
     return app(ReportRotationRun::class)->handle($organisation ?? test()->organisation, $token ?? test()->token, $report);
 }
 
+function reloadedRun(RotationRun $run): RotationRun
+{
+    return Tenancy::run(test()->organisation, fn (): RotationRun => $run->refresh());
+}
+
 function rotationsOf(Credential $credential): int
 {
     return Tenancy::run(test()->organisation, fn (): int => CredentialRotation::query()->where('credential_id', $credential->id)->count());
@@ -81,7 +86,7 @@ it('records a rotation from a successful report', function (): void {
 
     $rotation = Tenancy::run($this->organisation, fn (): CredentialRotation => CredentialRotation::query()->where('credential_id', $this->credential->id)->sole());
     $credential = Tenancy::run($this->organisation, fn (): Credential => $this->credential->refresh());
-    $run->refresh();
+    reloadedRun($run);
 
     expect($rotation->rotated_by_id)->toBeNull()
         ->and($rotation->due_at->equalTo($wasDue))->toBeTrue()
@@ -90,7 +95,7 @@ it('records a rotation from a successful report', function (): void {
         ->and($credential->next_rotation_at->equalTo($rotation->rotated_at->copy()->addDays(90)))->toBeTrue()
         ->and($credential->hint)->toBe('AB12')
         ->and($run->status)->toBe(RotationRunStatus::Succeeded)
-        ->and($run->new_key_id)->toBe('key_abc')
+        ->and($run->new_key_identifier)->toBe('key_abc')
         ->and($run->deployments)->toBe(['dep-1'])
         ->and($run->credential_rotation_id)->toBe($rotation->id);
 });
@@ -102,7 +107,7 @@ it('refuses a report that carries something that looks like a key, and keeps it 
 
     expect(fn (): ?array => reportRun($report))->toThrow(ValidationException::class);
 
-    expect($run->refresh()->status)->toBe(RotationRunStatus::Claimed)
+    expect(reloadedRun($run)->status)->toBe(RotationRunStatus::Claimed)
         ->and(rotationsOf($this->credential))->toBe(0)
         ->and(DB::connection('pgsql_migrator')->table('activities')->whereRaw('properties::text like ? or attribute_changes::text like ?', ["%{$key}%", "%{$key}%"])->count())->toBe(0);
 })->with([
@@ -128,9 +133,9 @@ it('accepts a late success for a run it had given up on', function (): void {
     $this->travel(61)->minutes();
     app(ClaimRotationRuns::class)->handle($this->organisation, $this->token);
 
-    expect($run->refresh()->status)->toBe(RotationRunStatus::Abandoned)
+    expect(reloadedRun($run)->status)->toBe(RotationRunStatus::Abandoned)
         ->and(reportRun(successReport($run, ['rotated_at' => $rotatedAt->toIso8601String()]))['status'])->toBe(200)
-        ->and($run->refresh()->status)->toBe(RotationRunStatus::Succeeded)
+        ->and(reloadedRun($run)->status)->toBe(RotationRunStatus::Succeeded)
         ->and(rotationsOf($this->credential))->toBe(1);
 });
 
@@ -147,7 +152,7 @@ it('stores why a run failed and tells the owners, leaving the credential as it w
 
     expect(reportRun(failureReport($run))['status'])->toBe(200);
 
-    $run->refresh();
+    reloadedRun($run);
     expect($run->status)->toBe(RotationRunStatus::Failed)
         ->and($run->failed_step)->toBe('push')
         ->and($run->failure)->toBe('Laravel Cloud answered 422.')
@@ -168,7 +173,7 @@ it('refuses a success for a credential revoked meanwhile, and marks the run fail
     Tenancy::run($this->organisation, fn () => $this->credential->forceFill(['revoked_at' => now()])->save());
 
     expect(fn (): ?array => reportRun(successReport($run)))->toThrow(ValidationException::class);
-    expect($run->refresh()->status)->toBe(RotationRunStatus::Failed)
+    expect(reloadedRun($run)->status)->toBe(RotationRunStatus::Failed)
         ->and(rotationsOf($this->credential))->toBe(0);
 });
 

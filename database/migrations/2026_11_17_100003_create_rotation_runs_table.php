@@ -18,7 +18,7 @@ return new class extends Migration
             $table->timestampTz('claimed_at');
             $table->timestampTz('finished_at')->nullable();
             $table->uuid('credential_rotation_id')->nullable();
-            $table->string('new_key_id', 100)->nullable()->comment("the vendor's id for the new key, never the key");
+            $table->string('new_key_identifier', 100)->nullable()->comment("the vendor's id for the new key, never the key");
             $table->string('new_key_hint', 8)->nullable();
             $table->timestampTz('old_keys_expire_at')->nullable();
             $table->jsonb('deployments')->nullable();

@@ -111,7 +111,7 @@ it('needs a rotation schedule and a credential that is not revoked', function (a
 
     expect(automaticRotationErrors(automaticRotationData($this->runner), $credential)['runner_id'] ?? [])->toContain($message);
 })->with([
-    'no schedule' => [['rotation_days' => null], 'Give this credential a rotation schedule first.'],
+    'no schedule' => [['rotation_days' => null, 'expires_at' => '2030-01-01'], 'Give this credential a rotation schedule first.'],
     'revoked' => [['revoked_at' => now()], 'A revoked credential can\'t be rotated.'],
 ]);
 
