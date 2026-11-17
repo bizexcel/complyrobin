@@ -15,4 +15,5 @@ enum Ability: string
     case RotateCredentials = 'credentials.rotate';
     case ManageChannels = 'channels.manage';
     case ExportAudit = 'audit.export';
+    case ManageBilling = 'billing.manage';
 }

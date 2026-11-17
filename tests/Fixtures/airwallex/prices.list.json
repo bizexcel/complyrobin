@@ -1,0 +1,49 @@
+{
+  "has_more": false,
+  "items": [
+    {
+      "active": true,
+      "billing_type": "IN_ADVANCE",
+      "created_at": "2026-11-17T09:33:35+0000",
+      "currency": "MYR",
+      "description": "ComplyRobin Team, yearly",
+      "id": "pri_sgpvng7wjho8pcxh39u",
+      "metadata": {
+        "app": "complyrobin"
+      },
+      "metered": false,
+      "pricing_model": "PER_UNIT",
+      "product_id": "prd_sgpvng7wjho8pct0ieo",
+      "recurring": {
+        "period": 1,
+        "period_unit": "YEAR"
+      },
+      "tax_included": false,
+      "type": "RECURRING",
+      "unit_amount": 490.0,
+      "updated_at": "2026-11-17T09:33:35+0000"
+    },
+    {
+      "active": true,
+      "billing_type": "IN_ADVANCE",
+      "created_at": "2026-11-17T09:33:35+0000",
+      "currency": "MYR",
+      "description": "ComplyRobin Team, monthly",
+      "id": "pri_sgpvng7wjho8pcx79vl",
+      "metadata": {
+        "app": "complyrobin"
+      },
+      "metered": false,
+      "pricing_model": "PER_UNIT",
+      "product_id": "prd_sgpvng7wjho8pct0ieo",
+      "recurring": {
+        "period": 1,
+        "period_unit": "MONTH"
+      },
+      "tax_included": false,
+      "type": "RECURRING",
+      "unit_amount": 49,
+      "updated_at": "2026-11-17T09:33:35+0000"
+    }
+  ]
+}

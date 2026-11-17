@@ -4,11 +4,13 @@ namespace App\Core\Organisations\Actions;
 
 use App\Core\Identity\Models\User;
 use App\Core\Organisations\Models\Organisation;
+use App\Core\Organisations\Support\Countries;
 use App\Core\Tenancy\Exceptions\TenantMismatch;
 use App\Core\Tenancy\Facades\Tenancy;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 final class UpdateOrganisationProfile
@@ -33,6 +35,7 @@ final class UpdateOrganisationProfile
         $validated = Validator::make($data, [
             'name' => ['required', 'string', 'max:255'],
             'timezone' => ['required', 'timezone:all'],
+            'country' => ['sometimes', 'required', Rule::in(Countries::codes())],
         ])->validate();
 
         $organisation->update($validated);

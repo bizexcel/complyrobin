@@ -1,0 +1,518 @@
+{
+  "has_more": false,
+  "items": [
+    {
+      "active": true,
+      "created_at": "2026-08-16T11:55:10+0000",
+      "id": "prd_sgpv7p6nnhle9xwea03",
+      "name": "WhatsApp Pro",
+      "unit": "",
+      "updated_at": "2026-08-16T11:55:10+0000"
+    },
+    {
+      "active": true,
+      "created_at": "2026-08-16T11:55:14+0000",
+      "id": "prd_sgpv7p6nnhle9xyhq1x",
+      "name": "WhatsApp Max",
+      "unit": "",
+      "updated_at": "2026-08-16T11:55:14+0000"
+    },
+    {
+      "active": true,
+      "created_at": "2026-07-16T17:41:07+0000",
+      "id": "prd_hkdms4ncshkgd1cketx",
+      "name": "Cliniclah Pro",
+      "unit": "",
+      "updated_at": "2026-07-16T17:41:07+0000"
+    },
+    {
+      "active": true,
+      "created_at": "2026-07-16T17:41:10+0000",
+      "id": "prd_hkdm4j4s2hkgd1e9ddh",
+      "name": "Cliniclah Pro+",
+      "unit": "",
+      "updated_at": "2026-07-16T17:41:10+0000"
+    },
+    {
+      "active": false,
+      "created_at": "2026-07-12T10:18:24+0000",
+      "id": "prd_hkdmnw524hkbm2g316t",
+      "name": "Cliniclah Pro (updated)",
+      "unit": "",
+      "updated_at": "2026-07-12T10:59:33+0000"
+    },
+    {
+      "active": true,
+      "created_at": "2026-07-16T17:41:13+0000",
+      "id": "prd_hkdm4j4s2hkgd1fy8qe",
+      "name": "WhatsApp Own Number",
+      "unit": "",
+      "updated_at": "2026-07-16T17:41:13+0000"
+    },
+    {
+      "active": false,
+      "created_at": "2026-07-12T10:23:06+0000",
+      "id": "prd_hkdmpfwgkhkbm73tv83",
+      "name": "Cliniclah Pro",
+      "unit": "",
+      "updated_at": "2026-07-12T10:41:16+0000"
+    },
+    {
+      "active": false,
+      "created_at": "2026-07-12T10:17:43+0000",
+      "id": "prd_hkdmnw524hkbm1rk25g",
+      "name": "Cliniclah Pro",
+      "unit": "",
+      "updated_at": "2026-07-12T10:40:21+0000"
+    },
+    {
+      "active": true,
+      "created_at": "2026-07-16T17:41:16+0000",
+      "id": "prd_hkdms4ncshkgd1hjhlf",
+      "name": "Extra Storage 25 GB",
+      "unit": "",
+      "updated_at": "2026-07-16T17:41:16+0000"
+    },
+    {
+      "active": true,
+      "created_at": "2026-07-16T17:41:18+0000",
+      "id": "prd_hkdm4j4s2hkgd1j115t",
+      "name": "Extra Storage 50 GB",
+      "unit": "",
+      "updated_at": "2026-07-16T17:41:18+0000"
+    },
+    {
+      "active": true,
+      "created_at": "2026-07-16T17:41:21+0000",
+      "id": "prd_hkdms4ncshkgd1knppx",
+      "name": "Extra Storage 150 GB",
+      "unit": "",
+      "updated_at": "2026-07-16T17:41:21+0000"
+    },
+    {
+      "active": true,
+      "created_at": "2026-07-16T17:41:24+0000",
+      "id": "prd_hkdm4j4s2hkgd1m6ozg",
+      "name": "Extra Storage 300 GB",
+      "unit": "",
+      "updated_at": "2026-07-16T17:41:24+0000"
+    },
+    {
+      "active": true,
+      "created_at": "2026-07-16T17:41:26+0000",
+      "id": "prd_hkdm4j4s2hkgd1nrd3z",
+      "name": "Extra Storage 1 TB",
+      "unit": "",
+      "updated_at": "2026-07-16T17:41:26+0000"
+    },
+    {
+      "active": false,
+      "created_at": "2026-07-15T15:57:56+0000",
+      "id": "prd_hkdm52hdjhkf6i235og",
+      "name": "WhatsApp Own Number",
+      "unit": "",
+      "updated_at": "2026-07-16T08:58:03+0000"
+    },
+    {
+      "active": true,
+      "created_at": "2026-07-16T17:41:29+0000",
+      "id": "prd_hkdm4j4s2hkgd1pcct4",
+      "name": "Extra Storage 2 TB",
+      "unit": "",
+      "updated_at": "2026-07-16T17:41:29+0000"
+    },
+    {
+      "active": false,
+      "created_at": "2026-07-15T15:58:03+0000",
+      "id": "prd_hkdm52hdjhkf6i6e22k",
+      "name": "Extra Storage 50 GB",
+      "unit": "",
+      "updated_at": "2026-07-16T08:58:03+0000"
+    },
+    {
+      "active": false,
+      "created_at": "2026-07-15T15:58:07+0000",
+      "id": "prd_hkdm52hdjhkf6i8jtgf",
+      "name": "Extra Storage 150 GB",
+      "unit": "",
+      "updated_at": "2026-07-16T08:58:03+0000"
+    },
+    {
+      "active": false,
+      "created_at": "2026-07-12T04:41:14+0000",
+      "description": "",
+      "id": "prd_hkdmnw524hkbcrvu1yd",
+      "metadata": {},
+      "name": "Pro+",
+      "tax_code": "pct_0504020000",
+      "unit": "clinic",
+      "updated_at": "2026-07-12T10:07:27+0000"
+    },
+    {
+      "active": false,
+      "created_at": "2026-07-12T04:41:03+0000",
+      "description": "",
+      "id": "prd_hkdmpfwgkhkbcrox23y",
+      "metadata": {},
+      "name": "Pro",
+      "tax_code": "pct_0504020000",
+      "unit": "clinic",
+      "updated_at": "2026-07-12T10:07:30+0000"
+    },
+    {
+      "active": false,
+      "created_at": "2026-07-15T15:58:11+0000",
+      "id": "prd_hkdm52hdjhkf6iasa28",
+      "name": "Extra Storage 300 GB",
+      "unit": "",
+      "updated_at": "2026-07-16T08:58:03+0000"
+    },
+    {
+      "active": false,
+      "created_at": "2026-07-15T15:58:15+0000",
+      "id": "prd_hkdm52hdjhkf6id7kt6",
+      "name": "Extra Storage 1 TB",
+      "unit": "",
+      "updated_at": "2026-07-16T08:58:03+0000"
+    },
+    {
+      "active": false,
+      "created_at": "2026-07-12T10:23:08+0000",
+      "id": "prd_hkdmnw524hkbm7502mm",
+      "name": "Cliniclah Pro+",
+      "unit": "",
+      "updated_at": "2026-07-12T10:41:18+0000"
+    },
+    {
+      "active": false,
+      "created_at": "2026-07-12T10:23:10+0000",
+      "id": "prd_hkdmpfwgkhkbm765fpq",
+      "name": "WhatsApp Own Number",
+      "unit": "",
+      "updated_at": "2026-07-12T10:41:21+0000"
+    },
+    {
+      "active": false,
+      "created_at": "2026-07-12T10:23:12+0000",
+      "id": "prd_hkdmpfwgkhkbm77ca5j",
+      "name": "Extra Storage 50 GB",
+      "unit": "",
+      "updated_at": "2026-07-12T10:41:23+0000"
+    },
+    {
+      "active": false,
+      "created_at": "2026-07-12T10:55:48+0000",
+      "id": "prd_hkdmnw524hkbn3k385p",
+      "name": "Verify RM179 Price",
+      "unit": "",
+      "updated_at": "2026-07-12T10:56:43+0000"
+    },
+    {
+      "active": false,
+      "created_at": "2026-07-15T15:58:20+0000",
+      "id": "prd_hkdms4ncshkf6iglpfp",
+      "name": "Extra Storage 2 TB",
+      "unit": "",
+      "updated_at": "2026-07-16T08:58:03+0000"
+    },
+    {
+      "active": false,
+      "created_at": "2026-07-12T10:58:41+0000",
+      "id": "prd_hkdmnw524hkbn6f3im8",
+      "name": "Cliniclah Pro+",
+      "unit": "",
+      "updated_at": "2026-07-14T17:26:46+0000"
+    },
+    {
+      "active": true,
+      "created_at": "2026-07-16T17:41:35+0000",
+      "id": "prd_hkdms4ncshkgd1sqgjo",
+      "name": "AI Imaging Reports \u2014 extra use (sen)",
+      "unit": "",
+      "updated_at": "2026-07-23T15:17:35+0000"
+    },
+    {
+      "active": false,
+      "created_at": "2026-07-14T16:08:43+0000",
+      "id": "prd_hkdmpzvnnhke33v0im8",
+      "name": "Extra Storage 2 TB",
+      "unit": "",
+      "updated_at": "2026-07-14T17:26:42+0000"
+    },
+    {
+      "active": false,
+      "created_at": "2026-07-14T16:08:24+0000",
+      "id": "prd_hkdmpzvnnhke33jsbop",
+      "name": "Extra Storage 25 GB",
+      "unit": "",
+      "updated_at": "2026-07-14T17:26:46+0000"
+    },
+    {
+      "active": false,
+      "created_at": "2026-07-14T16:08:33+0000",
+      "id": "prd_hkdmpzvnnhke33oydzn",
+      "name": "Extra Storage 150 GB",
+      "unit": "",
+      "updated_at": "2026-07-14T17:26:46+0000"
+    },
+    {
+      "active": false,
+      "created_at": "2026-07-14T16:08:37+0000",
+      "id": "prd_hkdmpzvnnhke33r2tj9",
+      "name": "Extra Storage 300 GB",
+      "unit": "",
+      "updated_at": "2026-07-14T17:26:46+0000"
+    },
+    {
+      "active": false,
+      "created_at": "2026-07-14T16:08:40+0000",
+      "id": "prd_hkdm8zpthhke33t4ynl",
+      "name": "Extra Storage 1 TB",
+      "unit": "",
+      "updated_at": "2026-07-14T17:26:46+0000"
+    },
+    {
+      "active": false,
+      "created_at": "2026-07-12T10:58:39+0000",
+      "id": "prd_hkdmpfwgkhkbn6drz2w",
+      "name": "Cliniclah Pro",
+      "unit": "",
+      "updated_at": "2026-07-14T17:26:46+0000"
+    },
+    {
+      "active": false,
+      "created_at": "2026-07-12T10:58:43+0000",
+      "id": "prd_hkdmnw524hkbn6ge3bd",
+      "name": "WhatsApp Own Number",
+      "unit": "",
+      "updated_at": "2026-07-14T17:26:46+0000"
+    },
+    {
+      "active": false,
+      "created_at": "2026-07-12T10:58:45+0000",
+      "id": "prd_hkdmpfwgkhkbn6hkdkt",
+      "name": "Extra Storage 50 GB",
+      "unit": "",
+      "updated_at": "2026-07-14T17:26:46+0000"
+    },
+    {
+      "active": false,
+      "created_at": "2026-07-15T15:57:49+0000",
+      "id": "prd_hkdms4ncshkf6hxo22s",
+      "name": "Cliniclah Pro",
+      "unit": "",
+      "updated_at": "2026-07-16T08:58:03+0000"
+    },
+    {
+      "active": false,
+      "created_at": "2026-07-15T15:57:53+0000",
+      "id": "prd_hkdm52hdjhkf6hzz5ke",
+      "name": "Cliniclah Pro+",
+      "unit": "",
+      "updated_at": "2026-07-16T08:58:03+0000"
+    },
+    {
+      "active": false,
+      "created_at": "2026-07-15T15:57:59+0000",
+      "id": "prd_hkdm52hdjhkf6i40jd5",
+      "name": "Extra Storage 25 GB",
+      "unit": "",
+      "updated_at": "2026-07-16T08:58:03+0000"
+    },
+    {
+      "active": false,
+      "created_at": "2026-07-16T12:24:25+0000",
+      "id": "prd_hkdm4j4s2hkg4b3897a",
+      "name": "ZZ Probe Usage Product d73108",
+      "unit": "",
+      "updated_at": "2026-07-16T12:25:01+0000"
+    },
+    {
+      "active": true,
+      "created_at": "2026-07-16T17:41:43+0000",
+      "id": "prd_hkdm4j4s2hkgd1xp9dg",
+      "name": "Ask AI \u2014 extra use (sen)",
+      "unit": "",
+      "updated_at": "2026-07-23T15:17:33+0000"
+    },
+    {
+      "active": true,
+      "created_at": "2026-07-16T17:41:40+0000",
+      "id": "prd_hkdms4ncshkgd1w2alb",
+      "name": "Voice Transcription \u2014 extra use (sen)",
+      "unit": "",
+      "updated_at": "2026-07-23T15:17:33+0000"
+    },
+    {
+      "active": true,
+      "created_at": "2026-07-16T17:41:32+0000",
+      "id": "prd_hkdms4ncshkgd1qz3oi",
+      "name": "WhatsApp Messages \u2014 metered usage (sen)",
+      "unit": "",
+      "updated_at": "2026-07-23T15:17:36+0000"
+    },
+    {
+      "active": true,
+      "created_at": "2026-07-16T17:41:38+0000",
+      "id": "prd_hkdms4ncshkgd1ui47p",
+      "name": "AI Consultation Notes \u2014 extra use (sen)",
+      "unit": "",
+      "updated_at": "2026-07-23T15:17:34+0000"
+    },
+    {
+      "active": true,
+      "created_at": "2026-07-29T10:38:15+0000",
+      "id": "prd_sgpv7j7nghkudden3k1",
+      "name": "WhatsApp Notify",
+      "unit": "",
+      "updated_at": "2026-07-29T10:38:15+0000"
+    },
+    {
+      "active": true,
+      "created_at": "2026-07-29T10:38:20+0000",
+      "id": "prd_sgpv7j7nghkuddhlnz7",
+      "name": "WhatsApp Automate",
+      "unit": "",
+      "updated_at": "2026-07-29T10:38:20+0000"
+    },
+    {
+      "active": true,
+      "created_at": "2026-07-29T10:38:23+0000",
+      "id": "prd_sgpv7j7nghkuddjs2ie",
+      "name": "WhatsApp Engage",
+      "unit": "",
+      "updated_at": "2026-07-29T10:38:23+0000"
+    },
+    {
+      "active": true,
+      "created_at": "2026-07-29T10:38:28+0000",
+      "id": "prd_sgpvnzmplhkuddmgsro",
+      "name": "WhatsApp Extra Number",
+      "unit": "",
+      "updated_at": "2026-07-29T10:38:28+0000"
+    },
+    {
+      "active": false,
+      "created_at": "2026-07-27T15:50:17+0000",
+      "id": "prd_sgpvx4hlwhksel8ym14",
+      "name": "WhatsApp messages",
+      "unit": "",
+      "updated_at": "2026-07-27T15:50:17+0000"
+    },
+    {
+      "active": false,
+      "created_at": "2026-07-27T15:50:18+0000",
+      "id": "prd_sgpvx4hlwhksel90ovm",
+      "name": "Imaging AI reports",
+      "unit": "",
+      "updated_at": "2026-07-27T15:50:18+0000"
+    },
+    {
+      "active": false,
+      "created_at": "2026-07-27T15:51:07+0000",
+      "id": "prd_sgpvx4hlwhksem29bxw",
+      "name": "WhatsApp messages",
+      "unit": "",
+      "updated_at": "2026-07-27T15:51:07+0000"
+    },
+    {
+      "active": false,
+      "created_at": "2026-07-27T15:52:24+0000",
+      "id": "prd_sgpvx4hlwhksencfjg6",
+      "name": "WhatsApp messages",
+      "unit": "",
+      "updated_at": "2026-07-27T15:52:24+0000"
+    },
+    {
+      "active": false,
+      "created_at": "2026-07-27T15:53:42+0000",
+      "id": "prd_sgpvx4hlwhkseomja80",
+      "name": "WhatsApp messages",
+      "unit": "",
+      "updated_at": "2026-07-27T15:53:42+0000"
+    },
+    {
+      "active": false,
+      "created_at": "2026-07-27T15:53:42+0000",
+      "id": "prd_sgpvx4hlwhkseomkf4a",
+      "name": "Imaging AI reports",
+      "unit": "",
+      "updated_at": "2026-07-27T15:53:42+0000"
+    },
+    {
+      "active": false,
+      "created_at": "2026-07-27T15:51:07+0000",
+      "id": "prd_sgpvjgl62hksem2aroo",
+      "name": "Imaging AI reports",
+      "unit": "",
+      "updated_at": "2026-07-27T15:51:07+0000"
+    },
+    {
+      "active": false,
+      "created_at": "2026-07-27T15:52:24+0000",
+      "id": "prd_sgpvjgl62hksencgpxm",
+      "name": "Imaging AI reports",
+      "unit": "",
+      "updated_at": "2026-07-27T15:52:24+0000"
+    },
+    {
+      "active": false,
+      "created_at": "2026-07-27T16:24:51+0000",
+      "id": "prd_sgpvx4hlwhksfjjaxm6",
+      "name": "PROBE7 WhatsApp messages 162444",
+      "unit": "",
+      "updated_at": "2026-07-27T16:24:51+0000"
+    },
+    {
+      "active": false,
+      "created_at": "2026-07-27T16:24:48+0000",
+      "id": "prd_sgpvjgl62hksfjhm2b1",
+      "name": "PROBE7 WhatsApp messages 162444",
+      "unit": "",
+      "updated_at": "2026-07-27T16:24:48+0000"
+    },
+    {
+      "active": true,
+      "created_at": "2026-07-27T16:26:13+0000",
+      "id": "prd_sgpvx4hlwhksfkw8ldc",
+      "name": "PROBE9 WhatsApp messages",
+      "unit": "",
+      "updated_at": "2026-07-27T16:26:13+0000"
+    },
+    {
+      "active": true,
+      "created_at": "2026-07-29T11:42:44+0000",
+      "id": "prd_sgpv7j7nghkuf5e8gfy",
+      "name": "Credit Top-up",
+      "unit": "",
+      "updated_at": "2026-07-29T11:42:44+0000"
+    },
+    {
+      "active": true,
+      "created_at": "2026-08-16T11:55:20+0000",
+      "id": "prd_sgpv7p6nnhle9y2log1",
+      "name": "WhatsApp Business API",
+      "unit": "",
+      "updated_at": "2026-08-16T11:55:20+0000"
+    },
+    {
+      "active": true,
+      "created_at": "2026-08-16T11:55:07+0000",
+      "id": "prd_sgpvzxk5qhle9xuna4r",
+      "name": "WhatsApp Basic",
+      "unit": "",
+      "updated_at": "2026-08-16T11:55:07+0000"
+    },
+    {
+      "active": true,
+      "created_at": "2026-09-23T05:47:37+0000",
+      "id": "prd_sgpv9j52ghmjw3askl0",
+      "metadata": {
+        "purpose": "cliniclah-sandbox-check-20260923-cleanup"
+      },
+      "name": "cliniclah-sandbox-check-20260923-decline-trigger-80-51",
+      "unit": "",
+      "updated_at": "2026-09-23T05:47:37+0000"
+    }
+  ]
+}

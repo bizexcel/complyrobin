@@ -8,3 +8,6 @@ parameters:
         - database
         - routes
     tmpDir: storage/framework/cache/phpstan
+    universalObjectCratesClasses:
+        # Airwallex API objects: their fields are read as properties, like Stripe's StripeObject.
+        - App\Billing\Airwallex\AirwallexObject

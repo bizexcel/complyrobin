@@ -1,5 +1,6 @@
 <?php
 
+use App\Billing\Subscription;
 use App\Core\Entitlements\Entitlements;
 use App\Core\Entitlements\Enums\Module;
 use App\Core\Entitlements\Enums\Plan;
@@ -57,4 +58,14 @@ it('lets Support look at organisations but not grant modules', function (): void
     Filament::setCurrentPanel('admin');
 
     Tenancy::bypass('test: staff panel', fn () => Livewire::test(ListOrganisations::class)->assertTableActionHidden('grantModule', $this->acme));
+});
+
+it('shows staff each organisation\'s subscriptions', function (): void {
+    $this->travelTo(now()->parse('2026-11-17 09:40:00', 'UTC'));
+    Tenancy::run($this->acme, fn () => Subscription::factory()->trialing()->create(['type' => 'credentials', 'trial_ends_at' => now()->addDays(14)]));
+    Tenancy::run($this->globex, fn () => Subscription::factory()->pastDue()->create(['type' => 'credentials']));
+
+    $this->actingAs($this->staff)->get('/admin/organisations')->assertOk()
+        ->assertSee('Credentials: on trial until 1 Dec 2026')
+        ->assertSee('Credentials: payment overdue');
 });

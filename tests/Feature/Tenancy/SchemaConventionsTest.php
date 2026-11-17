@@ -103,6 +103,17 @@ function packageTables(): array
     ];
 }
 
+/**
+ * Ids another system gives its own objects, named as Laravel Cashier names them (`stripe_id` there). They are that
+ * system's strings, never our uuids.
+ *
+ * @return list<string>
+ */
+function externalIdColumns(): array
+{
+    return ['airwallex_id'];
+}
+
 /** @return list<object{table_name: string, column_name: string, data_type: string}> */
 function schemaColumns(): array
 {
@@ -121,7 +132,7 @@ function describeColumns(array $columns): array
 it('uses uuid for every id and *_id column', function (): void {
     $offenders = array_filter(schemaColumns(), fn (object $column): bool => $column->data_type !== 'uuid'
         && (($column->column_name === 'id' && ! in_array($column->table_name, packageTables(), true))
-            || str_ends_with($column->column_name, '_id')));
+            || (str_ends_with($column->column_name, '_id') && ! in_array($column->column_name, externalIdColumns(), true))));
 
     expect(describeColumns(array_values($offenders)))->toBe([]);
 });

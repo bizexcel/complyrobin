@@ -1,0 +1,20 @@
+{
+  "address": {
+    "city": "Kuala Lumpur",
+    "country_code": "MY",
+    "postcode": "50450",
+    "street": "1 Jalan Test"
+  },
+  "automatic_tax_eligibility": "ELIGIBLE",
+  "created_at": "2026-11-17T09:33:42+0000",
+  "default_billing_currency": "MYR",
+  "email": "billing-spike@example.com",
+  "id": "bcus_sgpv8sltmho8pd165e4",
+  "metadata": {
+    "app": "complyrobin",
+    "organisation_id": "0195f0a0-0000-7000-8000-000000000001"
+  },
+  "name": "Spike Test Sdn Bhd",
+  "type": "BUSINESS",
+  "updated_at": "2026-11-17T09:33:42+0000"
+}

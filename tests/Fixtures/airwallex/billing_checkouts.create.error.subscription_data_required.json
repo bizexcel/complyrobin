@@ -1,0 +1,5 @@
+{
+  "code": "validation_error",
+  "message": "subscription_data must be provided for SUBSCRIPTION mode in checkout.",
+  "source": "subscription_data"
+}

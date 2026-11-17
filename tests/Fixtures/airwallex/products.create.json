@@ -1,0 +1,12 @@
+{
+  "active": true,
+  "created_at": "2026-11-17T09:33:28+0000",
+  "description": "ComplyRobin credentials register, Team plan.",
+  "id": "prd_sgpvng7wjho8pct0ieo",
+  "metadata": {
+    "app": "complyrobin"
+  },
+  "name": "ComplyRobin Team",
+  "unit": "organisation",
+  "updated_at": "2026-11-17T09:33:28+0000"
+}

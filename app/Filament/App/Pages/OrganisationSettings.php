@@ -4,6 +4,7 @@ namespace App\Filament\App\Pages;
 
 use App\Core\Organisations\Actions\UpdateOrganisationProfile;
 use App\Core\Organisations\Models\Organisation;
+use App\Core\Organisations\Support\Countries;
 use App\Filament\App\Actor;
 use App\Modules\Credentials\Actions\UpdateReminderPolicy;
 use App\Modules\Credentials\Support\ReminderPolicy;
@@ -18,7 +19,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
 /**
- * The organisation's settings: its name, time zone and reminder schedule. Needs organisation.update.
+ * The organisation's settings: its name, time zone, country and reminder schedule. Needs organisation.update.
  */
 class OrganisationSettings extends EditTenantProfile
 {
@@ -36,6 +37,11 @@ class OrganisationSettings extends EditTenantProfile
                     ->label('Time zone')
                     ->helperText('Decides your organisation\'s days: when reminders go out and when something is overdue.')
                     ->options(fn (): array => array_combine(DateTimeZone::listIdentifiers(), DateTimeZone::listIdentifiers()))
+                    ->searchable()
+                    ->required(),
+                Select::make('country')
+                    ->options(Countries::all())
+                    ->helperText('Decides the currency you pay in: ringgit in Malaysia, US dollars elsewhere.')
                     ->searchable()
                     ->required(),
             ]),
@@ -63,6 +69,7 @@ class OrganisationSettings extends EditTenantProfile
         return [
             'name' => $data['name'],
             'timezone' => $data['timezone'],
+            'country' => $data['country'] ?? null,
             'reminders_before' => array_map(strval(...), $policy->before),
             'reminders_overdue' => array_map(strval(...), $policy->overdue),
             'reminders_send_hour' => $policy->sendHour,
@@ -78,7 +85,7 @@ class OrganisationSettings extends EditTenantProfile
         $actor = Actor::current();
 
         return DB::transaction(function () use ($actor, $record, $data): Organisation {
-            app(UpdateOrganisationProfile::class)->handle($actor, $record, ['name' => $data['name'], 'timezone' => $data['timezone']]);
+            app(UpdateOrganisationProfile::class)->handle($actor, $record, ['name' => $data['name'], 'timezone' => $data['timezone'], 'country' => $data['country'] ?? null]);
             app(UpdateReminderPolicy::class)->handle($actor, $record, [
                 'before' => array_values((array) ($data['reminders_before'] ?? [])),
                 'overdue' => array_values((array) ($data['reminders_overdue'] ?? [])),

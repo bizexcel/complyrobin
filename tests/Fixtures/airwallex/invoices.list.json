@@ -1,0 +1,50 @@
+{
+  "has_more": false,
+  "items": [
+    {
+      "amount_due": 49,
+      "applied_discounts": [],
+      "automatic_tax_status": "DISABLED",
+      "billing_customer": {
+        "address": {
+          "city": "Kuala Lumpur",
+          "country_code": "MY",
+          "postcode": "50450",
+          "street": "1 Jalan Test"
+        },
+        "email": "billing-spike@example.com",
+        "name": "Spike Test Sdn Bhd",
+        "type": "BUSINESS"
+      },
+      "billing_customer_id": "bcus_sgpv8sltmho8pd165e4",
+      "collection_method": "CHARGE_ON_CHECKOUT",
+      "created_at": "2026-11-17T09:33:54+0000",
+      "currency": "MYR",
+      "days_until_due": 0,
+      "due_at": "2026-11-17T09:33:54+0000",
+      "enable_automatic_tax": false,
+      "finalized_at": "2026-11-17T09:33:54+0000",
+      "hosted_url": "https://invoice.sandbox.airwallex.com/pay?s=REDACTED",
+      "id": "inv_sgpv4ct6kho8pd8ewnj",
+      "legal_entity_id": "le_T_IreKVpOp2HYkC0KbdzFQ",
+      "linked_payment_account_id": "acct_joe-kjQKM1-kSRtGjTX51w",
+      "number": "INV-PDRGVU8O-0001",
+      "paid_out_of_band": false,
+      "past_payment_attempt_count": 0,
+      "payment_options": {
+        "payment_method_save": {
+          "mode": "ENABLED",
+          "next_triggered_by": "MERCHANT"
+        }
+      },
+      "payment_status": "UNPAID",
+      "pdf_url": "https://invoice.sandbox.airwallex.com/pdf?s=REDACTED",
+      "status": "FINALIZED",
+      "subscription_id": "sub_sgpv4ct6kho8pd8ekaz",
+      "total_amount": 49,
+      "total_discount_amounts": [],
+      "total_tax_amount": 0,
+      "updated_at": "2026-11-17T09:33:57+0000"
+    }
+  ]
+}

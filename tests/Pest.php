@@ -1,5 +1,7 @@
 <?php
 
+use App\Billing\Airwallex\WebhookSignature;
+use App\Billing\SubscriptionItem;
 use App\Core\Access\Enums\Ability;
 use App\Core\Access\Enums\SystemRole;
 use App\Core\Entitlements\Actions\GrantModule;
@@ -27,9 +29,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Notifications\AnonymousNotifiable;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 pest()->extend(TestCase::class)->in('Feature', 'Arch');
@@ -120,6 +124,7 @@ function populatedOrganisation(string $name): Organisation
         app(CreateNotificationChannel::class)->handle($owner, ['type' => 'slack', 'name' => '#ops', 'webhook_url' => 'https://hooks.slack.com/services/T000/B000/XXXX']);
         app(ClaimDueReminders::class)->handle(now());
         app(CreateCalendarFeed::class)->handle($owner);
+        SubscriptionItem::factory()->create();
 
     });
 
@@ -170,4 +175,66 @@ function asStaff(User $staff, Closure $callback): mixed
     Filament::setCurrentPanel('admin');
 
     return Tenancy::bypass('test: staff panel', $callback);
+}
+
+/**
+ * A response body recorded from the Airwallex demo API, in tests/Fixtures/airwallex (see requests.jsonl there for the
+ * request that produced it).
+ *
+ * @return array<string, mixed>
+ */
+function airwallexFixture(string $name): array
+{
+    return json_decode((string) file_get_contents(__DIR__."/Fixtures/airwallex/{$name}.json"), true, flags: JSON_THROW_ON_ERROR);
+}
+
+/**
+ * Fake the Airwallex demo API with recorded responses and refuse any other request. The login is always answered.
+ *
+ * @param  array<string, array{0: string, 1?: int}>  $routes  path under /api/v1/billing/ => [fixture name, status]
+ */
+function fakeAirwallex(array $routes): void
+{
+    config(['billing.client_id' => 'test-client', 'billing.api_key' => 'test-key', 'billing.env' => 'demo']);
+
+    Http::preventStrayRequests();
+    Http::fake([
+        'api-demo.airwallex.com/api/v1/authentication/login' => Http::response(airwallexFixture('authentication.login'), 201),
+        ...collect($routes)->mapWithKeys(fn (array $route, string $path): array => [
+            "api-demo.airwallex.com/api/v1/billing/{$path}" => Http::response(airwallexFixture($route[0]), $route[1] ?? 200),
+        ])->all(),
+    ]);
+}
+
+/**
+ * @param  array<string, mixed>  $overrides
+ * @return array<string, mixed>
+ */
+function airwallexEvent(array $overrides = []): array
+{
+    return [
+        'id' => 'evt_'.Str::random(24),
+        'name' => 'invoice.created',
+        'account_id' => 'acct_test',
+        'data' => ['object' => ['id' => 'inv_test']],
+        'created_at' => now()->toIso8601String(),
+        ...$overrides,
+    ];
+}
+
+/**
+ * Post the event as Airwallex would: the raw body, signed with the timestamp in milliseconds.
+ *
+ * @param  array<string, mixed>  $payload
+ */
+function postWebhook(array $payload, ?string $secret = 'whsec_test', ?int $timestampMs = null): TestResponse
+{
+    $body = json_encode($payload, JSON_THROW_ON_ERROR);
+    $timestamp = (string) ($timestampMs ?? now()->getTimestampMs());
+
+    return test()->call('POST', route('cashier.webhook'), server: [
+        'HTTP_X_TIMESTAMP' => $timestamp,
+        'HTTP_X_SIGNATURE' => $secret === null ? '' : WebhookSignature::computeSignature($timestamp, $body, $secret),
+        'CONTENT_TYPE' => 'application/json',
+    ], content: $body);
 }

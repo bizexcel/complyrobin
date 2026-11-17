@@ -2,6 +2,7 @@
 
 namespace App\Core\Entitlements;
 
+use App\Billing\Subscription;
 use App\Core\Entitlements\Enums\Feature;
 use App\Core\Entitlements\Enums\Limit;
 use App\Core\Entitlements\Enums\Module;
@@ -14,7 +15,7 @@ use Illuminate\Support\Facades\Cache;
 
 /**
  * Which plan the current organisation is on, and which modules it may use. Entitlements belong to the root organisation and are shared by its
- * sub-organisations. Paid subscriptions join this check when billing ships.
+ * sub-organisations. A module comes from a manual grant or from a valid subscription of that type (Cashier's `subscribed()`).
  */
 final class Entitlements
 {
@@ -64,7 +65,7 @@ final class Entitlements
     }
 
     /**
-     * The root organisation's grants that are active now.
+     * The root organisation's grants that are active now, and its valid subscriptions as grants without a plan (Team).
      *
      * @return list<array{module: string, plan: string|null}>
      */
@@ -73,7 +74,18 @@ final class Entitlements
         $rootId = $this->rootIdOf(Tenancy::id());
 
         /** @var list<array{module: string, plan: string|null}> */
-        return Cache::remember($this->cacheKey($rootId), self::CACHE_SECONDS, fn (): array => ModuleGrant::query()
+        return Cache::remember($this->cacheKey($rootId), self::CACHE_SECONDS, fn (): array => [
+            ...$this->grantedModules($rootId),
+            ...$this->subscribedModules($rootId),
+        ]);
+    }
+
+    /**
+     * @return list<array{module: string, plan: string|null}>
+     */
+    private function grantedModules(string $rootId): array
+    {
+        return ModuleGrant::query()
             // The root's grants, which row-level security lets its sub-organisations read.
             ->withoutGlobalScope(OrganisationScope::class)
             ->where('organisation_id', $rootId)
@@ -82,7 +94,24 @@ final class Entitlements
             ->get(['module', 'plan'])
             ->map(fn (ModuleGrant $grant): array => ['module' => $grant->module->value, 'plan' => $grant->plan?->value])
             ->values()
-            ->all());
+            ->all();
+    }
+
+    /**
+     * @return list<array{module: string, plan: string|null}>
+     */
+    private function subscribedModules(string $rootId): array
+    {
+        return Subscription::query()
+            // The root's subscriptions, which row-level security lets its sub-organisations read.
+            ->withoutGlobalScope(OrganisationScope::class)
+            ->where('organisation_id', $rootId)
+            ->whereIn('type', array_column(Module::cases(), 'value'))
+            ->get()
+            ->filter(fn (Subscription $subscription): bool => $subscription->valid())
+            ->map(fn (Subscription $subscription): array => ['module' => $subscription->type, 'plan' => null])
+            ->values()
+            ->all();
     }
 
     public function forget(Organisation $root): void
