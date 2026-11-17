@@ -6,6 +6,7 @@ use App\Core\Access\Enums\Ability;
 use App\Core\Access\Enums\SystemRole;
 use App\Core\Entitlements\Actions\GrantModule;
 use App\Core\Entitlements\Enums\Module;
+use App\Core\Entitlements\Enums\Plan;
 use App\Core\Identity\Enums\PlatformRole;
 use App\Core\Identity\Models\StaffRoleChange;
 use App\Core\Identity\Models\User;
@@ -194,6 +195,14 @@ function asStaff(User $staff, Closure $callback): mixed
 function onTeamPlan(Organisation $organisation, ?Carbon $endsAt = null): void
 {
     app(GrantModule::class)->handle(User::factory()->create(['platform_role' => PlatformRole::Admin]), $organisation, Module::Credentials, now()->subDays(200), $endsAt);
+}
+
+/**
+ * Put the organisation on Pro (the credentials module granted as Pro).
+ */
+function onProPlan(Organisation $organisation): void
+{
+    app(GrantModule::class)->handle(User::factory()->create(['platform_role' => PlatformRole::Admin]), $organisation, Module::Credentials, now()->subDays(200), plan: Plan::Pro);
 }
 
 /**

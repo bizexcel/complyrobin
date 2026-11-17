@@ -74,19 +74,26 @@ it('keeps the due date for the database to work out', function (): void {
     Tenancy::run($this->organisation, fn () => DB::table('credentials')->where('id', $credential->id)->update(['next_rotation_at' => now()->addYears(5)]));
 })->throws(QueryException::class, 'generated');
 
-it('stops at 10 credentials on Free and says so', function (): void {
-    credentialsIn($this->organisation, 10);
+it('stops at 5 credentials on Free and says so', function (): void {
+    credentialsIn($this->organisation, 5);
 
     try {
         addCredential($this->owner);
-        $this->fail('Added an eleventh credential on Free.');
+        $this->fail('Added a sixth credential on Free.');
     } catch (ValidationException $exception) {
-        expect($exception->errors()['name'][0])->toContain('10 credentials');
+        expect($exception->errors()['name'][0])->toBe('Your plan allows 5 credentials. Revoke one you no longer use, or upgrade for more.');
     }
 });
 
+it('stops at 100 credentials on Pro', function (): void {
+    onProPlan($this->organisation);
+    credentialsIn($this->organisation, 100);
+
+    expect(fn (): Credential => addCredential($this->owner))->toThrow(ValidationException::class, '100 credentials');
+});
+
 it('doesn\'t count revoked or deleted credentials towards the limit', function (string $howItWasRetired): void {
-    credentialsIn($this->organisation, 10);
+    credentialsIn($this->organisation, 5);
     Tenancy::run($this->organisation, function () use ($howItWasRetired): void {
         $retired = Credential::query()->first();
         $howItWasRetired === 'revoked' ? app(RevokeCredential::class)->handle($this->owner, $retired) : $retired->delete();

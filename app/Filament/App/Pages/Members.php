@@ -28,6 +28,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use UnitEnum;
 
@@ -59,8 +60,8 @@ class Members extends Page implements HasTable
         $taken = $organisation instanceof Organisation ? Seats::taken($organisation) : 0;
 
         return $limit === null
-            ? "{$taken} members and open invitations · unlimited on {$entitlements->plan()->name}"
-            : "{$taken} of {$limit} seats on {$entitlements->plan()->name}, counting open invitations";
+            ? "{$taken} members and open invitations · unlimited on {$entitlements->plan()->label()}"
+            : "{$taken} of {$limit} ".Str::plural('seat', $limit)." on {$entitlements->plan()->label()}, counting open invitations";
     }
 
     public function content(Schema $schema): Schema

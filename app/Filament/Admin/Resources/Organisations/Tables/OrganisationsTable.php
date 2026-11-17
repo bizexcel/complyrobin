@@ -4,6 +4,7 @@ namespace App\Filament\Admin\Resources\Organisations\Tables;
 
 use App\Billing\Subscription;
 use App\Core\Entitlements\Actions\GrantModule;
+use App\Core\Entitlements\Entitlements;
 use App\Core\Entitlements\Enums\Module;
 use App\Core\Entitlements\Enums\Plan;
 use App\Core\Organisations\Models\Organisation;
@@ -54,9 +55,9 @@ class OrganisationsTable
                     ->schema([
                         Select::make('module')->options(collect(Module::cases())->mapWithKeys(fn (Module $module): array => [$module->value => $module->name]))->required(),
                         Select::make('plan')
-                            ->options([Plan::Team->value => 'Team', Plan::Enterprise->value => 'Enterprise'])
+                            ->options([Plan::Pro->value => 'Pro', Plan::Team->value => 'Team', Plan::Enterprise->value => 'Enterprise'])
                             ->default(Plan::Team->value)
-                            ->helperText('Any module puts the organisation on Team. Enterprise applies with the credentials module.'),
+                            ->helperText('Any module puts the organisation on Team. Pro and Enterprise apply with the credentials module.'),
                         DateTimePicker::make('starts_at')->default(now())->required(),
                         DateTimePicker::make('ends_at')->after('starts_at'),
                         Textarea::make('note')->maxLength(1000),
@@ -69,7 +70,7 @@ class OrganisationsTable
                             Carbon::parse($data['starts_at']),
                             filled($data['ends_at'] ?? null) ? Carbon::parse($data['ends_at']) : null,
                             $data['note'] ?? null,
-                            $data['module'] === Module::Credentials->value && ($data['plan'] ?? null) === Plan::Enterprise->value ? Plan::Enterprise : null,
+                            $data['module'] === Module::Credentials->value && in_array($data['plan'] ?? null, [Plan::Pro->value, Plan::Enterprise->value], true) ? Plan::from($data['plan']) : null,
                         );
 
                         Notification::make()->title('Module granted')->success()->send();
@@ -91,6 +92,8 @@ class OrganisationsTable
             default => 'active',
         };
 
-        return ucfirst($subscription->type).": {$status}";
+        $plan = $subscription->type === Module::Credentials->value ? ' '.Entitlements::planOf($subscription)->label() : '';
+
+        return ucfirst($subscription->type)."{$plan}: {$status}";
     }
 }

@@ -34,14 +34,16 @@ ComplyRobin stores information *about* credentials, **never the secret values**.
   - A dashboard.
 
 ## Plans
-| | Free | Team | Enterprise |
-|---|---|---|---|
-| Members | 3 | 10 | custom |
-| Credentials | 10 | unlimited | unlimited |
-| Reminders | email, in-app, calendar | plus chat channels and escalation | same |
-| Proof | rotation log | evidence files, evidence report, audit export, CSV import | same |
+| | Free | Pro | Team | Enterprise |
+|---|---|---|---|---|
+| Price a month | free | USD 29 (RM 99) | USD 99 (RM 349) | by quote |
+| Members | 1 | 5 | 10 | custom |
+| Credentials | 5 | 100 | unlimited | unlimited |
+| Reminders | email, in-app, calendar | plus Slack, Teams and Telegram | plus WhatsApp and escalation | same |
+| Proof | rotation log | plus CSV import | plus evidence files, evidence report and audit export | same |
+| Automatic rotation | no | no | yes | yes |
 
-The numbers live in `config/plans.php`. Until billing ships (Phase 3), staff grant Team or Enterprise from the admin panel. Downgrading never deletes anything: paid features pause, and existing records stay usable.
+Paying yearly gives two months free. The numbers live in `config/plans.php` and the prices in Airwallex (see [Airwallex](airwallex.md)). Customers subscribe to Pro or Team from Organisation → Billing; staff can also grant Pro, Team or Enterprise from the admin panel. Moving from Pro to Team is done by staff for now. Downgrading never deletes anything: paid features pause, and existing records stay usable.
 
 ## How it is built
 - **Stack:** PHP 8.5, Laravel 13, Filament 5, Postgres 17, and Pest 5 for tests.

@@ -10,6 +10,7 @@ use App\Billing\Subscription;
 use App\Core\Access\Enums\Ability;
 use App\Core\Entitlements\Entitlements;
 use App\Core\Entitlements\Enums\Module;
+use App\Core\Entitlements\Enums\Plan;
 use App\Core\Organisations\Models\Organisation;
 use App\Filament\App\Actor;
 use BackedEnum;
@@ -32,7 +33,8 @@ use Illuminate\Validation\ValidationException;
 use UnitEnum;
 
 /**
- * What the organisation pays for: each module on sale, its subscription and the invoices Airwallex rendered. Only a
+ * What the organisation pays for: each plan on sale (the credentials register as Pro or Team, an ISO module as Team), its
+ * subscription and the invoices Airwallex rendered. Only a
  * main organisation pays (its sub-organisations share what it buys), and only with billing.manage.
  */
 class Billing extends Page implements HasTable
@@ -97,7 +99,7 @@ class Billing extends Page implements HasTable
                         ->label('Open organisation settings')
                         ->url(fn (): string => OrganisationSettings::getUrl()),
                 ]),
-            ...array_map($this->moduleSection(...), self::modulesOnSale()),
+            ...array_map(fn (array $offer): Section => $this->planSection(...$offer), self::plansOnSale()),
             Section::make('Invoices')
                 ->description('Airwallex sends each invoice by email too.')
                 ->schema([EmbeddedTable::make()]),
@@ -142,41 +144,54 @@ class Billing extends Page implements HasTable
     }
 
     /**
-     * The modules with at least one price set in config/billing.php, in the current organisation's currency.
+     * The plans with at least one price set in config/billing.php in the current organisation's currency, by module.
      *
-     * @return list<Module>
+     * @return list<array{module: Module, plan: Plan}>
      */
-    public static function modulesOnSale(): array
+    public static function plansOnSale(): array
     {
-        return array_values(array_filter(Module::cases(), fn (Module $module): bool => array_any(
-            StartSubscriptionCheckout::INTERVALS,
-            fn (string $interval): bool => StartSubscriptionCheckout::price($module, $interval, self::currency()) !== null,
-        )));
+        $offers = [];
+
+        foreach (Module::cases() as $module) {
+            foreach (array_keys((array) config("billing.prices.{$module->value}", [])) as $planKey) {
+                $plan = Plan::tryFrom((string) $planKey);
+
+                if ($plan instanceof Plan && array_any(
+                    StartSubscriptionCheckout::INTERVALS,
+                    fn (string $interval): bool => StartSubscriptionCheckout::price($module, $plan, $interval, self::currency()) !== null,
+                )) {
+                    $offers[] = ['module' => $module, 'plan' => $plan];
+                }
+            }
+        }
+
+        return $offers;
     }
 
-    private function moduleSection(Module $module): Section
+    private function planSection(Module $module, Plan $plan): Section
     {
-        return Section::make($this->moduleName($module))
-            ->key("module-{$module->value}")
-            ->schema([Text::make(fn (): string => $this->status($module))])
+        return Section::make($this->offerName($module, $plan))
+            ->key("plan-{$module->value}-{$plan->value}")
+            ->description($this->offerDescription($module, $plan))
+            ->schema([Text::make(fn (): string => $this->status($module, $plan))])
             ->footer([
-                ...array_map(fn (string $interval): Action => $this->subscribeAction($module, $interval), StartSubscriptionCheckout::INTERVALS),
-                $this->cancelAction($module),
+                ...array_map(fn (string $interval): Action => $this->subscribeAction($module, $plan, $interval), StartSubscriptionCheckout::INTERVALS),
+                $this->cancelAction($module, $plan),
             ]);
     }
 
-    private function subscribeAction(Module $module, string $interval): Action
+    private function subscribeAction(Module $module, Plan $plan, string $interval): Action
     {
-        return Action::make("subscribe-{$module->value}-{$interval}")
+        return Action::make("subscribe-{$module->value}-{$plan->value}-{$interval}")
             ->label($interval === 'monthly' ? 'Pay monthly' : 'Pay yearly')
             ->color($interval === 'monthly' ? 'primary' : 'gray')
             ->visible(fn (): bool => $this->organisation()->country !== null
-                && StartSubscriptionCheckout::price($module, $interval, self::currency()) !== null
+                && StartSubscriptionCheckout::price($module, $plan, $interval, self::currency()) !== null
                 && ! $this->hasModule($module))
-            ->action(function (Action $action) use ($module, $interval): void {
+            ->action(function (Action $action) use ($module, $plan, $interval): void {
                 try {
                     $checkout = app(StartSubscriptionCheckout::class)
-                        ->handle(Actor::current(), $this->organisation(), $module, $interval, static::getUrl());
+                        ->handle(Actor::current(), $this->organisation(), $module, $plan, $interval, static::getUrl());
                 } catch (ValidationException $exception) {
                     Notification::make()->title((string) collect($exception->errors())->flatten()->first())->danger()->send();
                     $action->halt();
@@ -194,21 +209,22 @@ class Billing extends Page implements HasTable
             });
     }
 
-    private function cancelAction(Module $module): Action
+    private function cancelAction(Module $module, Plan $plan): Action
     {
-        return Action::make("cancel-{$module->value}")
+        return Action::make("cancel-{$module->value}-{$plan->value}")
             ->label('Cancel subscription')
             ->color('danger')
             ->link()
             ->requiresConfirmation()
-            ->modalHeading('Cancel '.$this->moduleName($module).'?')
+            ->modalHeading('Cancel '.$this->offerName($module, $plan).'?')
             ->modalDescription('It keeps working until the end of the period you\'ve paid for. To use it after that, you subscribe again.')
             ->modalSubmitActionLabel('Cancel subscription')
             ->modalCancelActionLabel('Keep it')
-            ->visible(function () use ($module): bool {
+            ->visible(function () use ($module, $plan): bool {
                 $subscription = $this->subscription($module);
 
-                return $subscription instanceof Subscription && $subscription->valid() && ! $subscription->canceled();
+                return $subscription instanceof Subscription && $subscription->valid() && ! $subscription->canceled()
+                    && Entitlements::planOf($subscription) === $plan;
             })
             ->action(function (Action $action) use ($module): void {
                 try {
@@ -230,11 +246,15 @@ class Billing extends Page implements HasTable
             });
     }
 
-    private function status(Module $module): string
+    private function status(Module $module, Plan $plan): string
     {
         $subscription = $this->subscription($module);
+        $subscribedPlan = $subscription instanceof Subscription && $subscription->valid() ? Entitlements::planOf($subscription) : null;
 
         return match (true) {
+            $subscribedPlan instanceof Plan && $subscribedPlan !== $plan => $subscribedPlan->includes($plan)
+                ? "You're on {$subscribedPlan->label()}, which includes everything in {$plan->label()}."
+                : "You're on {$subscribedPlan->label()}. To move to {$plan->label()}, contact us and we'll switch your plan with no gap.",
             $subscription instanceof Subscription && $subscription->onGracePeriod() => 'Cancelled. It works until '.$subscription->ends_at?->format('j M Y').'.',
             $subscription instanceof Subscription && $subscription->onTrial() => 'On a free trial until '.$subscription->trial_ends_at?->format('j M Y').'.',
             $subscription instanceof Subscription && $subscription->pastDue() => 'Payment overdue. Pay the open invoice below to keep using it.',
@@ -305,6 +325,24 @@ class Billing extends Page implements HasTable
             Module::Credentials => 'Credentials register',
             Module::Bcms => 'Business continuity (ISO 22301)',
             Module::Isms => 'Information security (ISO 27001)',
+        };
+    }
+
+    /**
+     * The credentials register is sold by plan name; an ISO module by its own name.
+     */
+    private function offerName(Module $module, Plan $plan): string
+    {
+        return $module === Module::Credentials ? $plan->label() : $this->moduleName($module);
+    }
+
+    private function offerDescription(Module $module, Plan $plan): ?string
+    {
+        return match (true) {
+            $module === Module::Credentials && $plan === Plan::Pro => 'Up to 5 members and 100 credentials, with reminders in Slack and Microsoft Teams and spreadsheet import.',
+            $module === Module::Credentials && $plan === Plan::Team => '10 members and unlimited credentials. Adds WhatsApp reminders, escalation, evidence reports, audit export and automatic rotation.',
+            $module !== Module::Credentials => 'Includes the credentials register on Team.',
+            default => null,
         };
     }
 }

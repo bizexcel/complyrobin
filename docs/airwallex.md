@@ -20,8 +20,9 @@ Keys from one environment don't work in the other. Use demo for local, preview a
 | `AIRWALLEX_CLIENT_ID` | Identifies your account to the API | Dashboard → Settings → Developer → **API keys** → Client ID | No, but keep it with the key |
 | `AIRWALLEX_API_KEY` | Lets ComplyRobin log in to the API | Same page → API key (shown once when you create it) | **Yes** |
 | `AIRWALLEX_WEBHOOK_SECRET` | Proves a webhook really came from Airwallex | Dashboard → Settings → Developer → **Webhooks** → your endpoint → secret | **Yes** |
-| `AIRWALLEX_PRICE_CREDENTIALS_MYR_MONTHLY`, `..._MYR_YEARLY` | The ringgit prices of the credentials register (`pri_…`), for organisations in Malaysia | Dashboard → Billing → **Products** → "ComplyRobin Team" → its MYR prices | No |
-| `AIRWALLEX_PRICE_CREDENTIALS_USD_MONTHLY`, `..._USD_YEARLY` | The US dollar prices (`pri_…`), for organisations everywhere else | Same product → its USD prices | No |
+| `AIRWALLEX_PRICE_PRO_MYR_MONTHLY`, `..._PRO_MYR_YEARLY` | The ringgit prices of Pro (`pri_…`), for organisations in Malaysia | Dashboard → Billing → **Products** → "ComplyRobin Pro" → its MYR prices | No |
+| `AIRWALLEX_PRICE_PRO_USD_MONTHLY`, `..._PRO_USD_YEARLY` | The US dollar prices of Pro (`pri_…`), for organisations everywhere else | Same product → its USD prices | No |
+| `AIRWALLEX_PRICE_TEAM_MYR_MONTHLY`, `..._TEAM_MYR_YEARLY`, `..._TEAM_USD_MONTHLY`, `..._TEAM_USD_YEARLY` | The same four prices for Team | "ComplyRobin Team" → its prices | No |
 | `BILLING_CURRENCY` | `myr` (the default) | | No |
 | `BILLING_TRIAL_DAYS` | `14` (the default) | The free trial on an organisation's first subscription to a module. `0` turns trials off. | No |
 
@@ -29,7 +30,7 @@ ComplyRobin never sees a bearer token from you: it logs in with the client ID an
 
 **Which currency?** Each organisation chooses its country at signup (or in Organisation settings). Organisations in Malaysia pay in ringgit and every other country pays in US dollars. The billing page asks for the country before offering a plan.
 
-Leave a price variable empty and the billing page doesn't offer that plan in that currency. The BCMS and ISMS prices (`AIRWALLEX_PRICE_BCMS_*`, `AIRWALLEX_PRICE_ISMS_*`) stay empty until those modules are sold.
+Leave a price variable empty and the billing page doesn't offer that plan in that currency. An organisation has one subscription to the credentials register, so moving from Pro to Team is done by ComplyRobin staff for now: cancel Pro now in the Airwallex dashboard and grant Team in /admin until the customer subscribes to Team. The BCMS and ISMS prices (`AIRWALLEX_PRICE_BCMS_*`, `AIRWALLEX_PRICE_ISMS_*`) stay empty until those modules are sold.
 
 ## 1. API key
 
@@ -44,11 +45,18 @@ Leave a price variable empty and the billing page doesn't offer that plan in tha
 
 Make these once per environment, in the dashboard, not from code:
 
-1. **Products** → new product named brand first, **"ComplyRobin Team"**, with the metadata `app` = `complyrobin`. The brand name and tag keep it apart from other apps' products on the same account.
-2. Add a monthly and a yearly recurring price in MYR, and the same two in USD. A price can't be changed once someone has paid it, so a new amount means a new price and new ids here.
-3. Copy the two `pri_…` ids into the price variables.
+1. **Products** → two new products named brand first, **"ComplyRobin Pro"** and **"ComplyRobin Team"**, each with the metadata `app` = `complyrobin`. The brand name and tag keep them apart from other apps' products on the same account.
+2. On each, add a monthly and a yearly recurring price in MYR, and the same two in USD:
 
-The demo environment already has these, made in the sandbox test. Their amounts (MYR 49 and 490) are placeholders:
+   | | MYR monthly | MYR yearly | USD monthly | USD yearly |
+   |---|---|---|---|---|
+   | Pro | 99 | 990 | 29 | 290 |
+   | Team | 349 | 3,490 | 99 | 990 |
+
+   A price can't be changed once someone has paid it, so a new amount means a new price and new ids here.
+3. Copy the eight `pri_…` ids into the price variables. Which plan a customer is on comes from the price they pay, so never put a Team price in a Pro variable.
+
+The demo environment has one product from the sandbox test, with placeholder amounts (MYR 49 and 490). Use it as Pro in demo, or rename it "ComplyRobin Pro":
 
 | | Demo id |
 |---|---|
@@ -56,7 +64,7 @@ The demo environment already has these, made in the sandbox test. Their amounts 
 | Monthly price, MYR | `pri_sgpvng7wjho8pcx79vl` |
 | Yearly price, MYR | `pri_sgpvng7wjho8pcxh39u` |
 
-There are no USD prices in demo yet: add them in the dashboard and copy their ids.
+The Team product and every USD price still have to be added in the demo dashboard.
 
 ## 3. Webhook
 

@@ -47,6 +47,7 @@ it('records a slug rename on the organisation\'s trail', function (): void {
 
 it('never writes hidden attributes such as invitation tokens to the trail', function (): void {
     Notification::fake();
+    onTeamPlan($this->organisation);
     $invitation = Tenancy::run($this->organisation, fn () => app(InviteMember::class)->handle($this->owner, 'bob@example.com', 'Editor'));
 
     $logged = DB::connection('pgsql_platform')->table('activities')->where('subject_id', $invitation->id)->value('attribute_changes');

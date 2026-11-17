@@ -26,37 +26,51 @@ function inviteTo(Organisation $organisation, User $actor, string $email): void
     Tenancy::run($organisation, fn () => app(InviteMember::class)->handle($actor, $email, 'Editor'));
 }
 
-it('lets a Free organisation reach 3 members, counting open invitations', function (): void {
-    inviteTo($this->organisation, $this->owner, 'bob@example.com');
-    inviteTo($this->organisation, $this->owner, 'cara@example.com');
+it('keeps a Free organisation to its owner alone', function (): void {
+    try {
+        inviteTo($this->organisation, $this->owner, 'bob@example.com');
+        $this->fail('Invited a second member on Free.');
+    } catch (ValidationException $exception) {
+        expect($exception->errors()['email'][0])->toBe('Your plan allows 1 member, counting open invitations. Upgrade to invite more.');
+    }
+});
+
+it('lets a Pro organisation reach 5 members, counting open invitations', function (): void {
+    onProPlan($this->organisation);
+
+    foreach (['bob', 'cara', 'dan', 'eve'] as $name) {
+        inviteTo($this->organisation, $this->owner, "{$name}@example.com");
+    }
 
     try {
-        inviteTo($this->organisation, $this->owner, 'dan@example.com');
-        $this->fail('Invited a fourth member on Free.');
+        inviteTo($this->organisation, $this->owner, 'fay@example.com');
+        $this->fail('Invited a sixth member on Pro.');
     } catch (ValidationException $exception) {
-        expect($exception->errors()['email'][0])->toContain('3 members');
+        expect($exception->errors()['email'][0])->toContain('5 members');
     }
 });
 
 it('frees the seat of an invitation once it expires', function (): void {
-    inviteTo($this->organisation, $this->owner, 'bob@example.com');
-    inviteTo($this->organisation, $this->owner, 'cara@example.com');
+    onProPlan($this->organisation);
+    foreach (['bob', 'cara', 'dan', 'eve'] as $name) {
+        inviteTo($this->organisation, $this->owner, "{$name}@example.com");
+    }
 
     $this->travel(InviteMember::DAYS_VALID + 1)->days();
-    inviteTo($this->organisation, $this->owner, 'dan@example.com');
+    inviteTo($this->organisation, $this->owner, 'fay@example.com');
 
     expect(Tenancy::run($this->organisation, fn () => Invitation::query()->where('expires_at', '>', now())->pluck('email')->all()))
-        ->toBe(['dan@example.com']);
+        ->toBe(['fay@example.com']);
 });
 
 it('doesn\'t count an invitation twice when it is sent again', function (): void {
-    inviteTo($this->organisation, $this->owner, 'bob@example.com');
-    inviteTo($this->organisation, $this->owner, 'bob@example.com');
-
-    inviteTo($this->organisation, $this->owner, 'cara@example.com');
+    onProPlan($this->organisation);
+    foreach (['bob', 'bob', 'cara', 'dan', 'eve'] as $name) {
+        inviteTo($this->organisation, $this->owner, "{$name}@example.com");
+    }
 
     expect(Tenancy::run($this->organisation, fn () => Invitation::query()->orderBy('email')->pluck('email')->all()))
-        ->toBe(['bob@example.com', 'cara@example.com']);
+        ->toBe(['bob@example.com', 'cara@example.com', 'dan@example.com', 'eve@example.com']);
 });
 
 it('allows more members on Team', function (): void {
@@ -71,9 +85,10 @@ it('allows more members on Team', function (): void {
 });
 
 it('refuses to accept an invitation once the organisation is full', function (): void {
+    onProPlan($this->organisation);
     $invitee = User::factory()->create(['email' => 'bob@example.com']);
     inviteTo($this->organisation, $this->owner, 'bob@example.com');
-    Tenancy::run($this->organisation, fn () => $this->organisation->users()->attach(User::factory()->count(2)->create()));
+    Tenancy::run($this->organisation, fn () => $this->organisation->users()->attach(User::factory()->count(4)->create()));
 
     app(AcceptInvitation::class)->handle($invitee, $this->organisation, basename(invitationLink('bob@example.com')));
 })->throws(AuthorizationException::class, 'member limit');

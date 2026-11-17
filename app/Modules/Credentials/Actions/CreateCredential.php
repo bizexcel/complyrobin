@@ -40,7 +40,7 @@ final readonly class CreateCredential
 
             if ($limit !== null && Credential::query()->active()->count() >= $limit) {
                 throw ValidationException::withMessages([
-                    'name' => "Your plan allows {$limit} credentials. Revoke one you no longer use, or upgrade to Team for unlimited credentials.",
+                    'name' => "Your plan allows {$limit} credentials. Revoke one you no longer use, or upgrade for more.",
                 ]);
             }
 

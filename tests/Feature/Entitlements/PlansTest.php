@@ -30,10 +30,25 @@ function planOf(Organisation $organisation): array
     ]);
 }
 
-it('puts an organisation without a grant on Free: 3 members, 10 credentials, email reminders only', function (): void {
+it('puts an organisation without a grant on Free: 1 member, 5 credentials, email reminders only', function (): void {
     expect(planOf($this->organisation))->toBe([
-        'plan' => Plan::Free, 'members' => 3, 'credentials' => 10, 'chat' => false, 'evidence' => false,
+        'plan' => Plan::Free, 'members' => 1, 'credentials' => 5, 'chat' => false, 'evidence' => false,
     ]);
+});
+
+it('puts an organisation granted Pro on 5 members and 100 credentials, with chat reminders but no evidence report', function (): void {
+    app(GrantModule::class)->handle($this->staff, $this->organisation, Module::Credentials, now()->subDay(), plan: Plan::Pro);
+
+    expect(planOf($this->organisation))->toBe([
+        'plan' => Plan::Pro, 'members' => 5, 'credentials' => 100, 'chat' => true, 'evidence' => false,
+    ]);
+});
+
+it('takes the highest plan when an organisation has more than one grant', function (): void {
+    app(GrantModule::class)->handle($this->staff, $this->organisation, Module::Credentials, now()->subDay(), plan: Plan::Pro);
+    app(GrantModule::class)->handle($this->staff, $this->organisation, Module::Isms, now()->subDay());
+
+    expect(planOf($this->organisation)['plan'])->toBe(Plan::Team);
 });
 
 it('moves an organisation to Team with the credentials module, or with an ISO module, which includes it', function (Module $module): void {
@@ -63,8 +78,9 @@ it('only grants a plan with the credentials module, and never Free', function (M
     'the Free plan' => [Module::Credentials, Plan::Free],
 ])->throws(InvalidArgumentException::class);
 
-it('includes automatic rotation on Team and Enterprise, not on Free', function (): void {
+it('includes automatic rotation on Team and Enterprise, not on Free or Pro', function (): void {
     expect(Plan::Free->allows(Feature::AutomaticRotation))->toBeFalse()
+        ->and(Plan::Pro->allows(Feature::AutomaticRotation))->toBeFalse()
         ->and(Plan::Team->allows(Feature::AutomaticRotation))->toBeTrue()
         ->and(Plan::Enterprise->allows(Feature::AutomaticRotation))->toBeTrue();
 });

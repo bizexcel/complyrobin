@@ -6,6 +6,7 @@ use App\Billing\Airwallex\AirwallexSubscription;
 use App\Billing\Subscription;
 use App\Core\Access\Enums\SystemRole;
 use App\Core\Entitlements\Enums\Module;
+use App\Core\Entitlements\Enums\Plan;
 use App\Core\Identity\Models\User;
 use App\Core\Organisations\Actions\CreateOrganisation;
 use App\Core\Tenancy\Facades\Tenancy;
@@ -15,16 +16,19 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\ValidationException;
 
 beforeEach(function (): void {
-    config(['billing.prices.credentials' => ['myr' => ['monthly' => 'pri_sgpvng7wjho8pcx79vl', 'yearly' => null], 'usd' => ['monthly' => null, 'yearly' => null]]]);
+    config(['billing.prices.credentials' => [
+        'pro' => ['myr' => ['monthly' => 'pri_sgpvng7wjho8pcx79vl', 'yearly' => null], 'usd' => ['monthly' => null, 'yearly' => null]],
+        'team' => ['myr' => ['monthly' => 'pri_team_myr_monthly_not_recorded', 'yearly' => null], 'usd' => ['monthly' => null, 'yearly' => null]],
+    ]]);
     fakeAirwallex([]);
     $this->owner = User::factory()->create();
     $this->organisation = app(CreateOrganisation::class)->handle($this->owner, 'Acme', 'MY');
 });
 
-function startCheckout(User $actor, string $interval = 'monthly'): mixed
+function startCheckout(User $actor, string $interval = 'monthly', Plan $plan = Plan::Pro): mixed
 {
     return Tenancy::run(test()->organisation, fn () => app(StartSubscriptionCheckout::class)
-        ->handle($actor, test()->organisation->fresh(), Module::Credentials, $interval, 'https://app.complyrobin.test/acme/billing'));
+        ->handle($actor, test()->organisation->fresh(), Module::Credentials, $plan, $interval, 'https://app.complyrobin.test/acme/billing'));
 }
 
 it('needs the billing permission', function (): void {
@@ -55,6 +59,15 @@ it('refuses a second subscription to the same module', function (): void {
     Tenancy::run($this->organisation, fn () => Subscription::factory()->create(['type' => 'credentials']));
 
     expect(fn (): mixed => startCheckout($this->owner))->toThrow(ValidationException::class, 'You already pay for this.');
+    Http::assertNothingSent();
+});
+
+it('points an organisation on Pro to us to move to Team, instead of a second subscription', function (): void {
+    Tenancy::run($this->organisation, fn () => Subscription::factory()->create(['type' => 'credentials', 'airwallex_price' => 'pri_sgpvng7wjho8pcx79vl']));
+
+    expect(fn (): mixed => startCheckout($this->owner, plan: Plan::Team))
+        ->toThrow(ValidationException::class, "You're on Pro. To move to Team, contact us and we'll switch your plan with no gap.")
+        ->and(fn (): mixed => startCheckout($this->owner))->toThrow(ValidationException::class, 'You already pay for this.');
     Http::assertNothingSent();
 });
 

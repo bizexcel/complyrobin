@@ -32,8 +32,8 @@ class ListCredentials extends ListRecords
         $limit = $entitlements->limit(Limit::Credentials);
 
         return $limit === null
-            ? "{$used} credentials · unlimited on {$entitlements->plan()->name}"
-            : "{$used} of {$limit} credentials on {$entitlements->plan()->name}";
+            ? "{$used} credentials · unlimited on {$entitlements->plan()->label()}"
+            : "{$used} of {$limit} credentials on {$entitlements->plan()->label()}";
     }
 
     protected function getHeaderActions(): array

@@ -10,8 +10,13 @@ $paidFeatures = ['chat_channels', 'whatsapp', 'escalation', 'evidence_report', '
 
 return [
     'free' => [
-        'limits' => ['members' => 3, 'credentials' => 10],
+        'limits' => ['members' => 1, 'credentials' => 5],
         'features' => [],
+    ],
+
+    'pro' => [
+        'limits' => ['members' => 5, 'credentials' => 100],
+        'features' => ['chat_channels', 'spreadsheet_import'],
     ],
 
     'team' => [

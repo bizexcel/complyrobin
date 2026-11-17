@@ -54,7 +54,7 @@ final readonly class InviteMember
             if ($organisation->users()->whereRaw('lower(email) = ?', [$email])->exists()) {
                 $validator->errors()->add('email', 'This person is already a member.');
             } elseif (($limit = $this->entitlements->limit(Limit::Members)) !== null && Seats::taken($organisation, exceptInvitationTo: $email) >= $limit) {
-                $validator->errors()->add('email', "Your plan allows {$limit} members, counting open invitations. Upgrade to invite more.");
+                $validator->errors()->add('email', "Your plan allows {$limit} ".Str::plural('member', $limit).', counting open invitations. Upgrade to invite more.');
             }
         })->validate();
 

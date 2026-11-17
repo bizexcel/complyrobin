@@ -20,6 +20,7 @@ beforeEach(function (): void {
     Notification::fake();
     $this->owner = User::factory()->create(['name' => 'Aisyah']);
     $this->organisation = app(CreateOrganisation::class)->handle($this->owner, 'Acme');
+    onProPlan($this->organisation);
 });
 
 function membersPageInvite(string $email, string $role = 'Editor'): Invitation
@@ -44,13 +45,13 @@ it('lets an Admin invite someone, counting seats against the plan', function ():
     openOrganisationAs($admin, $this->organisation);
 
     Livewire::test(Members::class)
-        ->assertSee('2 of 3 seats on Free, counting open invitations')
+        ->assertSee('2 of 5 seats on Pro, counting open invitations')
         ->callAction('invite', ['email' => 'Siti@Acme.test', 'role' => 'Editor'])
         ->assertNotified('Invitation sent to Siti@Acme.test.');
 
     Notification::assertSentOnDemand(InvitationNotification::class);
     expect(Invitation::query()->sole())->email->toBe('siti@acme.test')->role->toBe('Editor');
-    Livewire::test(Members::class)->assertSee('3 of 3 seats on Free, counting open invitations');
+    Livewire::test(Members::class)->assertSee('3 of 5 seats on Pro, counting open invitations');
 });
 
 it('doesn\'t offer inviting to an Editor', function (): void {
@@ -61,14 +62,16 @@ it('doesn\'t offer inviting to an Editor', function (): void {
 
 it('says so when the plan\'s member limit is reached', function (): void {
     memberWithRole($this->organisation, SystemRole::Editor);
-    membersPageInvite('ahmad@acme.test');
+    foreach (['ahmad', 'bala', 'chen'] as $name) {
+        membersPageInvite("{$name}@acme.test");
+    }
     openOrganisationAs($this->owner, $this->organisation);
 
     Livewire::test(Members::class)
         ->callAction('invite', ['email' => 'mei@acme.test', 'role' => 'Viewer'])
-        ->assertNotified('Your plan allows 3 members, counting open invitations. Upgrade to invite more.');
+        ->assertNotified('Your plan allows 5 members, counting open invitations. Upgrade to invite more.');
 
-    expect(Invitation::query()->pluck('email')->all())->toBe(['ahmad@acme.test']);
+    expect(Invitation::query()->orderBy('email')->pluck('email')->all())->toBe(['ahmad@acme.test', 'bala@acme.test', 'chen@acme.test']);
 });
 
 it('revokes an open invitation, freeing its seat', function (): void {
@@ -82,7 +85,7 @@ it('revokes an open invitation, freeing its seat', function (): void {
     Livewire::test(OpenInvitations::class)->callAction(TestAction::make('revoke')->table($invitation));
 
     expect(Invitation::query()->count())->toBe(0);
-    Livewire::test(Members::class)->assertSee('2 of 3 seats on Free');
+    Livewire::test(Members::class)->assertSee('2 of 5 seats on Pro');
 });
 
 it('lets only members who manage members revoke, and only open invitations', function (): void {

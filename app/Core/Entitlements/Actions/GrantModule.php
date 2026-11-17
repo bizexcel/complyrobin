@@ -20,7 +20,7 @@ final readonly class GrantModule
 
     /**
      * Grant a module to a root organisation (and so its sub-organisations) for a period. Platform Admins only.
-     * Any module puts the organisation on Team; pass Plan::Enterprise with the credentials module for Enterprise.
+     * Any module puts the organisation on Team; pass Plan::Pro or Plan::Enterprise with the credentials module for those.
      *
      * @throws AuthorizationException
      */
@@ -35,7 +35,7 @@ final readonly class GrantModule
         }
 
         if ($plan instanceof Plan && ($module !== Module::Credentials || $plan === Plan::Free)) {
-            throw new InvalidArgumentException('Only the credentials module carries a plan, and it is Team or Enterprise.');
+            throw new InvalidArgumentException('Only the credentials module carries a plan, and it is Pro, Team or Enterprise.');
         }
 
         if ($endsAt instanceof CarbonInterface && $endsAt->lessThanOrEqualTo($startsAt)) {

@@ -34,6 +34,21 @@ it('gives an organisation the modules it has a valid subscription to, and only t
         ->and(Tenancy::run($this->acme, fn (): Plan => app(Entitlements::class)->plan()))->toBe(Plan::Team);
 });
 
+it('gives the plan of the price subscribed to: Pro or Team, and Team for a price no longer listed', function (?string $price, Plan $plan): void {
+    config(['billing.prices.credentials' => [
+        'pro' => ['myr' => ['monthly' => 'pri_pro_monthly', 'yearly' => null], 'usd' => ['monthly' => null, 'yearly' => 'pri_pro_usd_yearly']],
+        'team' => ['myr' => ['monthly' => 'pri_team_monthly', 'yearly' => null], 'usd' => ['monthly' => null, 'yearly' => null]],
+    ]]);
+    subscribe($this->acme, Module::Credentials, fn ($factory) => $factory->state(['airwallex_price' => $price]));
+
+    expect(Tenancy::run($this->acme, fn (): Plan => app(Entitlements::class)->plan()))->toBe($plan);
+})->with([
+    'Pro, monthly in ringgit' => ['pri_pro_monthly', Plan::Pro],
+    'Pro, yearly in dollars' => ['pri_pro_usd_yearly', Plan::Pro],
+    'Team' => ['pri_team_monthly', Plan::Team],
+    'a retired price' => ['pri_retired', Plan::Team],
+]);
+
 it('counts a subscription only while it is valid', function (string $state, bool $isEntitled): void {
     subscribe($this->acme, Module::Isms, fn ($factory) => match ($state) {
         'trialing' => $factory->trialing(now()->addDays(14)),

@@ -20,19 +20,25 @@ beforeEach(function (): void {
     $this->travelTo(now()->parse('2026-11-17 09:34:30', 'UTC'));
     config([
         'billing.prices.credentials' => [
-            'myr' => ['monthly' => 'pri_sgpvng7wjho8pcx79vl', 'yearly' => 'pri_sgpvng7wjho8pcxh39u'],
-            'usd' => ['monthly' => 'pri_usd_monthly_not_recorded', 'yearly' => null],
+            'pro' => [
+                'myr' => ['monthly' => 'pri_sgpvng7wjho8pcx79vl', 'yearly' => 'pri_sgpvng7wjho8pcxh39u'],
+                'usd' => ['monthly' => 'pri_usd_monthly_not_recorded', 'yearly' => null],
+            ],
+            'team' => [
+                'myr' => ['monthly' => 'pri_team_myr_monthly_not_recorded', 'yearly' => 'pri_team_myr_yearly_not_recorded'],
+                'usd' => ['monthly' => null, 'yearly' => null],
+            ],
         ],
-        'billing.prices.bcms' => ['myr' => ['monthly' => null, 'yearly' => null], 'usd' => ['monthly' => null, 'yearly' => null]],
-        'billing.prices.isms' => ['myr' => ['monthly' => null, 'yearly' => null], 'usd' => ['monthly' => null, 'yearly' => null]],
+        'billing.prices.bcms' => ['team' => ['myr' => ['monthly' => null, 'yearly' => null], 'usd' => ['monthly' => null, 'yearly' => null]]],
+        'billing.prices.isms' => ['team' => ['myr' => ['monthly' => null, 'yearly' => null], 'usd' => ['monthly' => null, 'yearly' => null]]],
     ]);
     $this->owner = User::factory()->create(['email' => 'owner@acme.test']);
     $this->organisation = app(CreateOrganisation::class)->handle($this->owner, 'Acme', 'MY');
 });
 
-function billingAction(string $name): TestAction
+function billingAction(string $name, string $plan = 'pro'): TestAction
 {
-    return TestAction::make($name)->schemaComponent('module-credentials', schema: 'content');
+    return TestAction::make($name)->schemaComponent("plan-credentials-{$plan}", schema: 'content');
 }
 
 function billingCustomer(Organisation $organisation): void
@@ -45,20 +51,24 @@ function billingSubscription(Organisation $organisation, array $attributes = [])
     return Tenancy::run($organisation, fn (): Subscription => Subscription::factory()->create([
         'type' => 'credentials',
         'airwallex_id' => 'sub_sgpv4ct6kho8pd8ekaz',
+        'airwallex_price' => 'pri_sgpvng7wjho8pcx79vl',
         ...$attributes,
     ]));
 }
 
-it('offers the modules on sale, monthly or yearly', function (): void {
+it('offers Pro and Team, monthly or yearly', function (): void {
     fakeAirwallex([]);
     openOrganisationAs($this->owner, $this->organisation);
 
     Livewire::test(Billing::class)
-        ->assertSee('Credentials register')
+        ->assertSee('Up to 5 members and 100 credentials')
+        ->assertSee('10 members and unlimited credentials')
         ->assertSee('Not subscribed')
         ->assertDontSee('Business continuity')
-        ->assertActionVisible(billingAction('subscribe-credentials-monthly'))
-        ->assertActionVisible(billingAction('subscribe-credentials-yearly'))
+        ->assertActionVisible(billingAction('subscribe-credentials-pro-monthly'))
+        ->assertActionVisible(billingAction('subscribe-credentials-pro-yearly'))
+        ->assertActionVisible(billingAction('subscribe-credentials-team-monthly', 'team'))
+        ->assertActionVisible(billingAction('subscribe-credentials-team-yearly', 'team'))
         ->assertDontSee('Cancel subscription')
         ->assertSee('No invoices yet');
     Http::assertNothingSent();
@@ -72,7 +82,7 @@ it('sends the organisation to Airwallex\'s checkout, coming back to this page', 
     openOrganisationAs($this->owner, $this->organisation);
 
     Livewire::test(Billing::class)
-        ->callAction(billingAction('subscribe-credentials-yearly'))
+        ->callAction(billingAction('subscribe-credentials-pro-yearly'))
         ->assertRedirect(airwallexFixture('billing_checkouts.create')['url']);
 
     $checkout = Http::recorded(fn (Request $request): bool => str_ends_with($request->url(), 'billing_checkouts/create'))->first()[0];
@@ -95,7 +105,7 @@ it('charges an organisation outside Malaysia in US dollars, offering only the pl
 
     Livewire::test(Billing::class)
         ->assertDontSee('Pay yearly')
-        ->callAction(billingAction('subscribe-credentials-monthly'));
+        ->callAction(billingAction('subscribe-credentials-pro-monthly'));
 
     $checkout = Http::recorded(fn (Request $request): bool => str_ends_with($request->url(), 'billing_checkouts/create'))->first()[0];
     expect($checkout['currency'])->toBe('USD')
@@ -118,7 +128,7 @@ it('says so when Airwallex can\'t start a checkout', function (): void {
     openOrganisationAs($this->owner, $this->organisation);
 
     Livewire::test(Billing::class)
-        ->callAction(billingAction('subscribe-credentials-monthly'))
+        ->callAction(billingAction('subscribe-credentials-pro-monthly'))
         ->assertNotified('Payments aren\'t available right now. Try again in a few minutes.')
         ->assertNoRedirect();
 });
@@ -131,10 +141,40 @@ it('shows an active subscription and cancels it at the end of the period', funct
     Livewire::test(Billing::class)
         ->assertSee('Active. It renews automatically.')
         ->assertDontSee('Pay monthly')
-        ->callAction(billingAction('cancel-credentials'))
+        ->callAction(billingAction('cancel-credentials-pro'))
         ->assertNotified('Subscription cancelled. It works until 17 Dec 2026.')
         ->assertSee('Cancelled. It works until 17 Dec 2026.')
         ->assertDontSee('Cancel subscription');
+});
+
+it('starts a Team checkout at the Team price', function (): void {
+    fakeAirwallex([
+        'billing_customers/create' => ['billing_customers.create', 201],
+        'billing_checkouts/create' => ['billing_checkouts.create', 201],
+    ]);
+    openOrganisationAs($this->owner, $this->organisation);
+
+    Livewire::test(Billing::class)->callAction(billingAction('subscribe-credentials-team-monthly', 'team'));
+
+    $checkout = Http::recorded(fn (Request $request): bool => str_ends_with($request->url(), 'billing_checkouts/create'))->first()[0];
+    expect($checkout['line_items'])->toBe([['price_id' => 'pri_team_myr_monthly_not_recorded', 'quantity' => 1]]);
+});
+
+it('tells an organisation on Pro how to move to Team, and one on Team that it has everything in Pro', function (): void {
+    fakeAirwallex([]);
+    billingSubscription($this->organisation);
+    openOrganisationAs($this->owner, $this->organisation);
+
+    Livewire::test(Billing::class)
+        ->assertSee("You're on Pro. To move to Team, contact us and we'll switch your plan with no gap.")
+        ->assertDontSee('Pay monthly');
+
+    Tenancy::run($this->organisation, fn () => Subscription::query()->update(['airwallex_price' => 'pri_team_myr_yearly_not_recorded']));
+    openOrganisationAs($this->owner, $this->organisation);
+
+    Livewire::test(Billing::class)
+        ->assertSee("You're on Team, which includes everything in Pro.")
+        ->assertSee('Active. It renews automatically.');
 });
 
 it('lists the invoices Airwallex rendered, with links to view and download them', function (): void {

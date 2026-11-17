@@ -66,30 +66,48 @@ return [
     | Prices
     |--------------------------------------------------------------------------
     |
-    | The Airwallex price ids each module is sold at, by currency and by
-    | billing interval. A Malaysian organisation pays in ringgit and all
-    | others in US dollars. An empty id means that plan isn't offered.
+    | The Airwallex price ids each module is sold at, by plan, currency
+    | and billing interval. The credentials register is sold as Pro or
+    | Team; an ISO module includes Team. A Malaysian organisation pays
+    | in ringgit and all others in US dollars. An empty id means that
+    | plan isn't offered.
     |
     */
 
     'prices' => [
         'credentials' => [
-            'myr' => [
-                'monthly' => env('AIRWALLEX_PRICE_CREDENTIALS_MYR_MONTHLY'),
-                'yearly' => env('AIRWALLEX_PRICE_CREDENTIALS_MYR_YEARLY'),
+            'pro' => [
+                'myr' => [
+                    'monthly' => env('AIRWALLEX_PRICE_PRO_MYR_MONTHLY'),
+                    'yearly' => env('AIRWALLEX_PRICE_PRO_MYR_YEARLY'),
+                ],
+                'usd' => [
+                    'monthly' => env('AIRWALLEX_PRICE_PRO_USD_MONTHLY'),
+                    'yearly' => env('AIRWALLEX_PRICE_PRO_USD_YEARLY'),
+                ],
             ],
-            'usd' => [
-                'monthly' => env('AIRWALLEX_PRICE_CREDENTIALS_USD_MONTHLY'),
-                'yearly' => env('AIRWALLEX_PRICE_CREDENTIALS_USD_YEARLY'),
+            'team' => [
+                'myr' => [
+                    'monthly' => env('AIRWALLEX_PRICE_TEAM_MYR_MONTHLY'),
+                    'yearly' => env('AIRWALLEX_PRICE_TEAM_MYR_YEARLY'),
+                ],
+                'usd' => [
+                    'monthly' => env('AIRWALLEX_PRICE_TEAM_USD_MONTHLY'),
+                    'yearly' => env('AIRWALLEX_PRICE_TEAM_USD_YEARLY'),
+                ],
             ],
         ],
         'bcms' => [
-            'myr' => ['monthly' => env('AIRWALLEX_PRICE_BCMS_MYR_MONTHLY'), 'yearly' => env('AIRWALLEX_PRICE_BCMS_MYR_YEARLY')],
-            'usd' => ['monthly' => env('AIRWALLEX_PRICE_BCMS_USD_MONTHLY'), 'yearly' => env('AIRWALLEX_PRICE_BCMS_USD_YEARLY')],
+            'team' => [
+                'myr' => ['monthly' => env('AIRWALLEX_PRICE_BCMS_MYR_MONTHLY'), 'yearly' => env('AIRWALLEX_PRICE_BCMS_MYR_YEARLY')],
+                'usd' => ['monthly' => env('AIRWALLEX_PRICE_BCMS_USD_MONTHLY'), 'yearly' => env('AIRWALLEX_PRICE_BCMS_USD_YEARLY')],
+            ],
         ],
         'isms' => [
-            'myr' => ['monthly' => env('AIRWALLEX_PRICE_ISMS_MYR_MONTHLY'), 'yearly' => env('AIRWALLEX_PRICE_ISMS_MYR_YEARLY')],
-            'usd' => ['monthly' => env('AIRWALLEX_PRICE_ISMS_USD_MONTHLY'), 'yearly' => env('AIRWALLEX_PRICE_ISMS_USD_YEARLY')],
+            'team' => [
+                'myr' => ['monthly' => env('AIRWALLEX_PRICE_ISMS_MYR_MONTHLY'), 'yearly' => env('AIRWALLEX_PRICE_ISMS_MYR_YEARLY')],
+                'usd' => ['monthly' => env('AIRWALLEX_PRICE_ISMS_USD_MONTHLY'), 'yearly' => env('AIRWALLEX_PRICE_ISMS_USD_YEARLY')],
+            ],
         ],
     ],
 

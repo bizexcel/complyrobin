@@ -8,8 +8,30 @@ namespace App\Core\Entitlements\Enums;
 enum Plan: string
 {
     case Free = 'free';
+    case Pro = 'pro';
     case Team = 'team';
     case Enterprise = 'enterprise';
+
+    /**
+     * The plan's name as customers see it.
+     */
+    public function label(): string
+    {
+        return match ($this) {
+            self::Free => 'Free',
+            self::Pro => 'Pro',
+            self::Team => 'Team',
+            self::Enterprise => 'Enterprise',
+        };
+    }
+
+    /**
+     * Whether this plan gives at least what the other one does.
+     */
+    public function includes(self $other): bool
+    {
+        return array_search($this, self::cases(), true) >= array_search($other, self::cases(), true);
+    }
 
     public function allows(Feature $feature): bool
     {

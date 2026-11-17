@@ -15,6 +15,7 @@ beforeEach(function (): void {
     Notification::fake();
     $this->owner = User::factory()->create();
     $this->organisation = app(CreateOrganisation::class)->handle($this->owner, 'Acme');
+    onTeamPlan($this->organisation);
 });
 
 function invite(Organisation $organisation, User $actor, string $email, string $role = 'Editor'): Invitation

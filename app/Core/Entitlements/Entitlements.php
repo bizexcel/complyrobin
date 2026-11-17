@@ -38,17 +38,35 @@ final class Entitlements
     }
 
     /**
-     * Enterprise if granted; Team with the credentials module or an ISO module (which includes it); otherwise Free.
+     * The highest plan among the grants and subscriptions: Enterprise or Pro when granted so, Team for any other grant
+     * or an ISO module (which includes it), the plan of the price a subscription is on; otherwise Free.
      */
     public function plan(): Plan
     {
-        $grants = $this->activeGrants();
+        return array_reduce(
+            $this->activeGrants(),
+            fn (Plan $highest, array $grant): Plan => ($plan = Plan::from($grant['plan'] ?? Plan::Team->value))->includes($highest) ? $plan : $highest,
+            Plan::Free,
+        );
+    }
 
-        return match (true) {
-            array_any($grants, fn (array $grant): bool => $grant['plan'] === Plan::Enterprise->value) => Plan::Enterprise,
-            $grants !== [] => Plan::Team,
-            default => Plan::Free,
-        };
+    /**
+     * The plan a subscription gives, from the price it is on in config/billing.php. A price that isn't listed there
+     * (one that was retired) gives Team, as every subscription did before Pro.
+     */
+    public static function planOf(Subscription $subscription): Plan
+    {
+        foreach ((array) config("billing.prices.{$subscription->type}", []) as $plan => $currencies) {
+            foreach ((array) $currencies as $intervals) {
+                foreach ((array) $intervals as $price) {
+                    if (is_string($price) && $price !== '' && $subscription->hasPrice($price)) {
+                        return Plan::tryFrom((string) $plan) ?? Plan::Team;
+                    }
+                }
+            }
+        }
+
+        return Plan::Team;
     }
 
     public function allows(Feature $feature): bool
@@ -65,7 +83,7 @@ final class Entitlements
     }
 
     /**
-     * The root organisation's grants that are active now, and its valid subscriptions as grants without a plan (Team).
+     * The root organisation's grants that are active now, and its valid subscriptions as grants of the plan their price gives.
      *
      * @return list<array{module: string, plan: string|null}>
      */
@@ -109,7 +127,7 @@ final class Entitlements
             ->whereIn('type', array_column(Module::cases(), 'value'))
             ->get()
             ->filter(fn (Subscription $subscription): bool => $subscription->valid())
-            ->map(fn (Subscription $subscription): array => ['module' => $subscription->type, 'plan' => null])
+            ->map(fn (Subscription $subscription): array => ['module' => $subscription->type, 'plan' => self::planOf($subscription)->value])
             ->values()
             ->all();
     }

@@ -66,6 +66,6 @@ it('shows staff each organisation\'s subscriptions', function (): void {
     Tenancy::run($this->globex, fn () => Subscription::factory()->pastDue()->create(['type' => 'credentials']));
 
     $this->actingAs($this->staff)->get('/admin/organisations')->assertOk()
-        ->assertSee('Credentials: on trial until 1 Dec 2026')
-        ->assertSee('Credentials: payment overdue');
+        ->assertSee('Credentials Team: on trial until 1 Dec 2026')
+        ->assertSee('Credentials Team: payment overdue');
 });
