@@ -4,7 +4,8 @@ namespace App\Billing\Airwallex;
 
 /**
  * The statuses an Airwallex Billing subscription can have, as Stripe's SDK names them on `Stripe\Subscription`.
- * To confirm against recorded demo payloads in the sandbox spike before checkout goes live.
+ * Confirmed against the demo API (tests/Fixtures/airwallex). Airwallex has no "past due": an unpaid invoice moves the
+ * subscription to UNPAID, which Cashier's past due maps to.
  */
 final class AirwallexSubscription
 {
@@ -17,8 +18,9 @@ final class AirwallexSubscription
 
     public const string STATUS_ACTIVE = 'ACTIVE';
 
-    public const string STATUS_PAST_DUE = 'PAST_DUE';
-
+    /**
+     * An invoice is due and unpaid (Stripe's "past_due").
+     */
     public const string STATUS_UNPAID = 'UNPAID';
 
     public const string STATUS_CANCELLED = 'CANCELLED';

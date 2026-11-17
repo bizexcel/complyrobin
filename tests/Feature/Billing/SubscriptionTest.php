@@ -43,7 +43,6 @@ it('reads a subscription\'s status as Cashier does', function (string $state, ar
         'trialing' => $factory->trialing(now()->addDays(14)),
         'incomplete' => $factory->incomplete(),
         'past due' => $factory->pastDue(),
-        'unpaid' => $factory->unpaid(),
         'on grace period' => $factory->active()->state(['ends_at' => now()->addDays(5)]),
         'canceled and ended' => $factory->canceled()->state(['ends_at' => now()->subDay()]),
     });
@@ -54,7 +53,6 @@ it('reads a subscription\'s status as Cashier does', function (string $state, ar
     'trialing' => ['trialing', ['valid' => true, 'active' => true, 'incomplete' => false, 'pastDue' => false, 'onTrial' => true, 'canceled' => false, 'onGracePeriod' => false, 'ended' => false, 'recurring' => false]],
     'incomplete' => ['incomplete', ['valid' => false, 'active' => false, 'incomplete' => true, 'pastDue' => false, 'onTrial' => false, 'canceled' => false, 'onGracePeriod' => false, 'ended' => false, 'recurring' => true]],
     'past due' => ['past due', ['valid' => false, 'active' => false, 'incomplete' => false, 'pastDue' => true, 'onTrial' => false, 'canceled' => false, 'onGracePeriod' => false, 'ended' => false, 'recurring' => true]],
-    'unpaid' => ['unpaid', ['valid' => false, 'active' => false, 'incomplete' => false, 'pastDue' => false, 'onTrial' => false, 'canceled' => false, 'onGracePeriod' => false, 'ended' => false, 'recurring' => true]],
     'on grace period' => ['on grace period', ['valid' => true, 'active' => true, 'incomplete' => false, 'pastDue' => false, 'onTrial' => false, 'canceled' => true, 'onGracePeriod' => true, 'ended' => false, 'recurring' => false]],
     'canceled and ended' => ['canceled and ended', ['valid' => false, 'active' => false, 'incomplete' => false, 'pastDue' => false, 'onTrial' => false, 'canceled' => true, 'onGracePeriod' => false, 'ended' => true, 'recurring' => false]],
 ]);

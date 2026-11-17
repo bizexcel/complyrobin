@@ -99,16 +99,6 @@ class SubscriptionFactory extends Factory
     public function pastDue(): static
     {
         return $this->state([
-            'airwallex_status' => AirwallexSubscription::STATUS_PAST_DUE,
-        ]);
-    }
-
-    /**
-     * Mark the subscription as unpaid.
-     */
-    public function unpaid(): static
-    {
-        return $this->state([
             'airwallex_status' => AirwallexSubscription::STATUS_UNPAID,
         ]);
     }

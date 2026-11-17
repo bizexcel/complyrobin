@@ -170,7 +170,7 @@ class Subscription extends Model
      */
     public function pastDue(): bool
     {
-        return $this->airwallex_status === AirwallexSubscription::STATUS_PAST_DUE;
+        return $this->airwallex_status === AirwallexSubscription::STATUS_UNPAID;
     }
 
     /**
@@ -180,7 +180,7 @@ class Subscription extends Model
      */
     public function scopePastDue(Builder $query): void
     {
-        $query->where('airwallex_status', AirwallexSubscription::STATUS_PAST_DUE);
+        $query->where('airwallex_status', AirwallexSubscription::STATUS_UNPAID);
     }
 
     /**
@@ -190,8 +190,7 @@ class Subscription extends Model
     {
         return ! $this->ended() &&
             (! Cashier::$deactivateIncomplete || $this->airwallex_status !== AirwallexSubscription::STATUS_PENDING) &&
-            (! Cashier::$deactivatePastDue || $this->airwallex_status !== AirwallexSubscription::STATUS_PAST_DUE) &&
-            $this->airwallex_status !== AirwallexSubscription::STATUS_UNPAID;
+            (! Cashier::$deactivatePastDue || $this->airwallex_status !== AirwallexSubscription::STATUS_UNPAID);
     }
 
     /**
@@ -206,10 +205,10 @@ class Subscription extends Model
                 ->orWhere(function (Builder $query): void {
                     $query->onGracePeriod();
                 });
-        })->where('airwallex_status', '!=', AirwallexSubscription::STATUS_UNPAID);
+        });
 
         if (Cashier::$deactivatePastDue) {
-            $query->where('airwallex_status', '!=', AirwallexSubscription::STATUS_PAST_DUE);
+            $query->where('airwallex_status', '!=', AirwallexSubscription::STATUS_UNPAID);
         }
 
         if (Cashier::$deactivateIncomplete) {
