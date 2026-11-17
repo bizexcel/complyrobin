@@ -1,5 +1,6 @@
 <?php
 
+use App\Billing\SubscriptionItem;
 use App\Core\Access\Enums\Ability;
 use App\Core\Access\Enums\SystemRole;
 use App\Core\Entitlements\Actions\GrantModule;
@@ -120,6 +121,7 @@ function populatedOrganisation(string $name): Organisation
         app(CreateNotificationChannel::class)->handle($owner, ['type' => 'slack', 'name' => '#ops', 'webhook_url' => 'https://hooks.slack.com/services/T000/B000/XXXX']);
         app(ClaimDueReminders::class)->handle(now());
         app(CreateCalendarFeed::class)->handle($owner);
+        SubscriptionItem::factory()->create();
 
     });
 

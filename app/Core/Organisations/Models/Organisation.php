@@ -2,6 +2,7 @@
 
 namespace App\Core\Organisations\Models;
 
+use App\Billing\Billable;
 use App\Core\Audit\Concerns\LogsTenantActivity;
 use App\Core\Identity\Models\User;
 use App\Core\Tenancy\Concerns\UsesTenancyConnection;
@@ -15,6 +16,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
@@ -27,13 +29,14 @@ use Spatie\MediaLibrary\InteractsWithMedia;
  * @property array<string, mixed>|null $settings
  * @property string|null $root_id
  * @property list<string> $previous_slugs slugs it used before; they redirect here and nobody else may take them
+ * @property Carbon|null $trial_ends_at Cashier's generic trial, on the root organisation
  */
 #[Fillable(['name', 'slug', 'timezone', 'parent_id', 'root_id', 'settings'])]
 #[UseFactory(OrganisationFactory::class)]
 class Organisation extends Model implements HasMedia
 {
     /** @use HasFactory<OrganisationFactory> */
-    use HasFactory, HasUuids, InteractsWithMedia, LogsTenantActivity, SoftDeletes, UsesTenancyConnection;
+    use Billable, HasFactory, HasUuids, InteractsWithMedia, LogsTenantActivity, SoftDeletes, UsesTenancyConnection;
 
     /**
      * Only changes are audited: an organisation is created before it has an audit trail to write to.
@@ -94,6 +97,7 @@ class Organisation extends Model implements HasMedia
         return [
             'settings' => 'array',
             'previous_slugs' => 'array',
+            'trial_ends_at' => 'datetime',
         ];
     }
 }

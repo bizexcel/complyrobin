@@ -441,6 +441,7 @@ Every phase must pass Pest, Larastan, Pint and arch tests, and is deployed to a 
 - The minimal admin panel grows: plans, catalogue editing, enquiries, the email log.
 - Launch hardening for the MVP: CSP, rate limits, a restore drill, an external pen test on the credentials surface, then production cut-over at `app.complyrobin.com`.
 - *Exit:* billing webhook tests (replay, bad signature, transitions) and the restore drill pass.
+- **Status (2026-11-17): started.** The parts that don't call Airwallex are built and tested, copied from Laravel Cashier's source: `config/billing.php`, Cashier's three migrations (customer columns on `organisations`; `subscriptions` and `subscription_items` as tenant tables), `Cashier`, `Billable` with `ManagesCustomer`/`ManagesSubscriptions`, `Subscription` and `SubscriptionItem` with every status check and scope, their factories, and the signed, idempotent webhook inbox (`billing_webhook_calls`, keyed by `airwallex_id`). `Entitlements` now counts valid subscriptions. Waiting on the sandbox spike (Phase 0, spike 2): `AirwallexClient`, customers, `newSubscription()->checkout()`, invoices, `cancel()`/`resume()` and the `handle{Event}` methods, each built from recorded demo payloads.
 
 **Phase 4: Shared GRC core**
 - Catalogues (ISO 22301; ISO 27001:2022 with 93 controls) and templates.
