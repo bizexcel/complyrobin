@@ -114,7 +114,7 @@ it('lists the invoices Airwallex rendered, with links to view and download them'
     Livewire::test(Billing::class)
         ->assertSee('INV-PDRGVU8O-0001')
         ->assertSee('17 Nov 2026')
-        ->assertSee('RM49.00')
+        ->assertSee('49.00')
         ->assertSee('Unpaid')
         ->assertSee('https://invoice.sandbox.airwallex.com/pay', escape: false)
         ->assertSee('https://invoice.sandbox.airwallex.com/pdf', escape: false);

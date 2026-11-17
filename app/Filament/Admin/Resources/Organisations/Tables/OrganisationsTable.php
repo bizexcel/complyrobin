@@ -7,6 +7,7 @@ use App\Core\Entitlements\Actions\GrantModule;
 use App\Core\Entitlements\Enums\Module;
 use App\Core\Entitlements\Enums\Plan;
 use App\Core\Organisations\Models\Organisation;
+use App\Core\Tenancy\Scopes\OrganisationScope;
 use App\Filament\Admin\Actor;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DateTimePicker;
@@ -22,7 +23,10 @@ class OrganisationsTable
     public static function configure(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn ($query) => $query->withCount('users')->with('subscriptions'))
+            ->modifyQueryUsing(fn ($query) => $query->withCount('users')->with([
+                // Staff read every organisation's subscriptions on the platform connection; the tenant scope would need one organisation.
+                'subscriptions' => fn ($subscriptions) => $subscriptions->withoutGlobalScope(OrganisationScope::class),
+            ]))
             ->columns([
                 TextColumn::make('name')->searchable()->sortable(),
                 TextColumn::make('slug')->searchable(),

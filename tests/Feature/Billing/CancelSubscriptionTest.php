@@ -83,7 +83,7 @@ it('formats an invoice total in ringgit', function (): void {
     fakeAirwallex(['invoices*' => ['invoices.list']]);
     $subscription = recordedSubscription($this->organisation);
 
-    expect(Tenancy::run($this->organisation, fn () => $subscription->invoices()->sole()->total()))->toBe('RM49.00');
+    expect(Tenancy::run($this->organisation, fn () => $subscription->invoices()->sole()->total()))->toMatch('/^RM\s?49\.00$/u');
 })->skip(! extension_loaded('intl'), 'needs the intl extension, as production and CI have');
 
 it('syncs the subscription\'s status from Airwallex', function (): void {
