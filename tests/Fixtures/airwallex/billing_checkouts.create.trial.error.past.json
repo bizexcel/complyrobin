@@ -1,0 +1,5 @@
+{
+  "code": "validation_error",
+  "message": "Trial must be at least 1 day",
+  "source": "subscription_data.trial_end_date"
+}

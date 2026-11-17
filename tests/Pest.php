@@ -28,6 +28,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Notifications\AnonymousNotifiable;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -156,4 +157,33 @@ function evidencePdf(string $name = 'evidence.pdf'): UploadedFile
 function staffRoleChanges(): EloquentCollection
 {
     return Tenancy::bypass('test: read the staff role changes', fn (): EloquentCollection => StaffRoleChange::query()->orderBy('created_at')->orderBy('id')->get());
+}
+
+/**
+ * A response body recorded from the Airwallex demo API, in tests/Fixtures/airwallex (see requests.jsonl there for the
+ * request that produced it).
+ *
+ * @return array<string, mixed>
+ */
+function airwallexFixture(string $name): array
+{
+    return json_decode((string) file_get_contents(__DIR__."/Fixtures/airwallex/{$name}.json"), true, flags: JSON_THROW_ON_ERROR);
+}
+
+/**
+ * Fake the Airwallex demo API with recorded responses and refuse any other request. The login is always answered.
+ *
+ * @param  array<string, array{0: string, 1?: int}>  $routes  path under /api/v1/billing/ => [fixture name, status]
+ */
+function fakeAirwallex(array $routes): void
+{
+    config(['billing.client_id' => 'test-client', 'billing.api_key' => 'test-key', 'billing.env' => 'demo']);
+
+    Http::preventStrayRequests();
+    Http::fake([
+        'api-demo.airwallex.com/api/v1/authentication/login' => Http::response(airwallexFixture('authentication.login'), 201),
+        ...collect($routes)->mapWithKeys(fn (array $route, string $path): array => [
+            "api-demo.airwallex.com/api/v1/billing/{$path}" => Http::response(airwallexFixture($route[0]), $route[1] ?? 200),
+        ])->all(),
+    ]);
 }

@@ -2,10 +2,12 @@
 
 namespace App\Billing;
 
+use App\Billing\Airwallex\AirwallexClient;
 use App\Core\Organisations\Models\Organisation;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Number;
 
 /**
  * Laravel Cashier's static helpers, for Airwallex. The settings below are application configuration: they are set once
@@ -54,6 +56,29 @@ final class Cashier
      * @var class-string<SubscriptionItem>
      */
     public static $subscriptionItemModel = SubscriptionItem::class;
+
+    /**
+     * Get the Airwallex API client.
+     *
+     * @param  array{client_id?: string|null, api_key?: string|null, env?: string|null, api_version?: string|null}  $options
+     */
+    public static function airwallex(array $options = []): AirwallexClient
+    {
+        return new AirwallexClient(array_merge([
+            'client_id' => config('billing.client_id'),
+            'api_key' => config('billing.api_key'),
+            'env' => config('billing.env'),
+            'api_version' => config('billing.api_version'),
+        ], $options));
+    }
+
+    /**
+     * Format the given amount into a displayable currency. Airwallex amounts are in major units (49 is MYR 49.00).
+     */
+    public static function formatAmount(int|float $amount, ?string $currency = null, ?string $locale = null): string
+    {
+        return (string) Number::currency($amount, strtoupper($currency ?? (string) config('billing.currency')), $locale ?? (string) config('billing.currency_locale'));
+    }
 
     /**
      * Get the customer instance by its Airwallex ID.

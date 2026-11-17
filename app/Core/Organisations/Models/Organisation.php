@@ -74,6 +74,16 @@ class Organisation extends Model implements HasMedia
     }
 
     /**
+     * Tags the organisation's Airwallex customer, whose account may also hold other apps' customers.
+     *
+     * @return array<string, string>
+     */
+    public function airwallexMetadata(): array
+    {
+        return ['app' => 'complyrobin', 'organisation_id' => $this->getKey()];
+    }
+
+    /**
      * @return BelongsToMany<User, $this, Membership>
      */
     public function users(): BelongsToMany

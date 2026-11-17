@@ -2,7 +2,10 @@
 
 namespace App\Billing;
 
+use App\Billing\Airwallex\AirwallexObject;
 use App\Billing\Airwallex\AirwallexSubscription;
+use App\Billing\Concerns\Prorates;
+use App\Billing\Exceptions\AirwallexApiError;
 use App\Core\Audit\Concerns\LogsTenantActivity;
 use App\Core\Organisations\Models\Organisation;
 use App\Core\Tenancy\Concerns\BelongsToOrganisation;
@@ -18,6 +21,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Collection as SupportCollection;
 use InvalidArgumentException;
 
 /**
@@ -38,7 +42,7 @@ use InvalidArgumentException;
 class Subscription extends Model
 {
     /** @use HasFactory<SubscriptionFactory> */
-    use BelongsToOrganisation, HasFactory, HasUuids, LogsTenantActivity;
+    use BelongsToOrganisation, HasFactory, HasUuids, LogsTenantActivity, Prorates;
 
     /**
      * The relations to eager load on every query.
@@ -381,5 +385,114 @@ class Subscription extends Model
                 'This method requires a price argument since the subscription has multiple prices.'
             );
         }
+    }
+
+    /**
+     * Sync the Airwallex status of the subscription.
+     *
+     * @throws AirwallexApiError
+     */
+    public function syncAirwallexStatus(): void
+    {
+        $subscription = $this->asAirwallexSubscription();
+
+        $this->airwallex_status = $subscription->status;
+
+        $this->save();
+    }
+
+    /**
+     * Cancel the subscription at the end of the billing period.
+     *
+     * Airwallex can't take a cancellation back (`cancel_at_period_end: false` is accepted and ignored), so Cashier's
+     * `resume()` is left out.
+     *
+     * @param  array<string, mixed>  $options
+     * @return $this
+     *
+     * @throws AirwallexApiError
+     */
+    public function cancel(array $options = []): static
+    {
+        $airwallexSubscription = $this->updateAirwallexSubscription(array_merge($options, [
+            'cancel_at_period_end' => true,
+        ]));
+
+        $this->airwallex_status = $airwallexSubscription->status;
+
+        // If the user was on trial, we will set the grace period to end when the trial
+        // would have ended. Otherwise, we'll retrieve the end of the billing period
+        // period and make that the end of the grace period for this current user.
+        if ($this->onTrial()) {
+            $this->ends_at = $this->trial_ends_at;
+        } else {
+            $this->ends_at = \Illuminate\Support\Carbon::parse((string) $airwallexSubscription->current_period_ends_at);
+        }
+
+        $this->save();
+
+        return $this;
+    }
+
+    /**
+     * Cancel the subscription immediately without invoicing.
+     *
+     * @param  array<string, mixed>  $options
+     * @return $this
+     *
+     * @throws AirwallexApiError
+     */
+    public function cancelNow(array $options = []): static
+    {
+        $this->owner->airwallex()->subscriptions->cancel($this->airwallex_id, array_merge($options, [
+            'proration_behavior' => $this->prorateBehavior(),
+        ]));
+
+        $this->markAsCanceled();
+
+        return $this;
+    }
+
+    /**
+     * Get a collection of the subscription's invoices.
+     *
+     * @param  array<string, mixed>  $parameters
+     * @return SupportCollection<int, Invoice>
+     *
+     * @throws AirwallexApiError
+     */
+    public function invoices(array $parameters = []): SupportCollection
+    {
+        $invoices = $this->owner->airwallex()->invoices->all(array_merge($parameters, [
+            'subscription_id' => $this->airwallex_id,
+        ]));
+
+        return SupportCollection::make((array) $invoices->items)
+            ->map(fn (array $invoice): Invoice => new Invoice($this->owner, new AirwallexObject($invoice)));
+    }
+
+    /**
+     * Update the underlying Airwallex subscription information for the model.
+     *
+     * @param  array<string, mixed>  $options
+     *
+     * @throws AirwallexApiError
+     */
+    public function updateAirwallexSubscription(array $options = []): AirwallexObject
+    {
+        return $this->owner->airwallex()->subscriptions->update(
+            $this->airwallex_id, $options
+        );
+    }
+
+    /**
+     * Get the subscription as an Airwallex subscription object.
+     *
+     *
+     * @throws AirwallexApiError
+     */
+    public function asAirwallexSubscription(): AirwallexObject
+    {
+        return $this->owner->airwallex()->subscriptions->retrieve($this->airwallex_id);
     }
 }

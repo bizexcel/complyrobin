@@ -1,0 +1,34 @@
+{
+  "applied_discounts": [],
+  "automatic_tax_status": "DISABLED",
+  "billing_customer_id": "bcus_sgpv8sltmho8pd165e4",
+  "billing_cycle_anchor_at": "2026-11-17T09:35:39+0000",
+  "cancel_at_period_end": false,
+  "cancel_requested_at": "2026-11-17T09:35:39+0000",
+  "collection_method": "CHARGE_ON_CHECKOUT",
+  "created_at": "2026-11-17T09:35:01+0000",
+  "currency": "MYR",
+  "days_until_due": 0,
+  "default_invoice_template": {},
+  "enable_automatic_tax": false,
+  "id": "sub_sgpv4ct6kho8pecoim3",
+  "legal_entity_id": "le_T_IreKVpOp2HYkC0KbdzFQ",
+  "linked_payment_account_id": "acct_joe-kjQKM1-kSRtGjTX51w",
+  "metadata": {
+    "app": "complyrobin",
+    "type": "credentials"
+  },
+  "recurring": {
+    "period": 1,
+    "period_unit": "MONTH"
+  },
+  "starts_at": "2026-11-17T09:35:01+0000",
+  "status": "CANCELLED",
+  "trial_ends_at": "2026-11-17T09:35:39+0000",
+  "trial_starts_at": "2026-11-17T09:35:01+0000",
+  "update_at_period_end": false,
+  "updated_at": "2026-11-17T09:35:02+0000",
+  "cancel_at": "2026-11-17T09:35:39+0000",
+  "total_billing_cycles": 0,
+  "remaining_billing_cycles": 0
+}
