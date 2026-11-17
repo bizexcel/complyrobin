@@ -56,6 +56,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | API address
+    |--------------------------------------------------------------------------
+    |
+    | Where the JSON API (rotation runners) is served. With API_DOMAIN set (e.g. api.complyrobin.com) it answers
+    | there at /v1/…; without it, on the app's own address at /api/v1/….
+    |
+    */
+
+    'api' => [
+        'domain' => env('API_DOMAIN') ?: null,
+        'prefix' => env('API_PREFIX', env('API_DOMAIN') ? 'v1' : 'api/v1'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------
     |

@@ -4,6 +4,7 @@ namespace App\Modules\Credentials\Actions;
 
 use App\Core\Organisations\Models\Organisation;
 use App\Core\Tenancy\Facades\Tenancy;
+use App\Modules\Credentials\Enums\ReminderKind;
 use App\Modules\Credentials\Models\Credential;
 use App\Modules\Credentials\Models\Reminder;
 use App\Modules\Credentials\Support\ReminderPlanner;
@@ -40,7 +41,7 @@ final readonly class ClaimDueReminders
         $furthestBehind = ($policy->overdue === [] ? 0 : max($policy->overdue)) + 7 * $policy->repeatWeeklyForWeeks + 1;
 
         $credentials = Credential::query()->active()
-            ->with(['owner.user', 'backupOwner.user'])
+            ->with(['owner.user', 'backupOwner.user', 'automaticRotation'])
             ->whereBetween('next_rotation_at', [$now->copy()->subDays($furthestBehind), $now->copy()->addDays($furthestAhead)])
             ->get();
 
@@ -50,6 +51,11 @@ final readonly class ClaimDueReminders
             $step = ReminderPlanner::currentStep(RotationSchedule::daysUntilDue($credential->next_rotation_at, $now, $organisation->timezone), $policy);
 
             if (! $step instanceof ReminderStep) {
+                continue;
+            }
+
+            // A runner rotates it: no need to remind beforehand, but overdue still means the runner didn't.
+            if ($step->kind === ReminderKind::Upcoming && $credential->automaticRotation !== null) {
                 continue;
             }
 

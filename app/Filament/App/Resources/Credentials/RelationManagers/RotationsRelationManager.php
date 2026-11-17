@@ -4,9 +4,11 @@ namespace App\Filament\App\Resources\Credentials\RelationManagers;
 
 use App\Filament\App\Resources\Credentials\CredentialPresenter;
 use App\Modules\Credentials\Models\CredentialRotation;
+use App\Modules\Credentials\Models\RotationRun;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\HtmlString;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
@@ -30,6 +32,7 @@ class RotationsRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with(['rotatedBy', 'run']))
             ->columns([
                 TextColumn::make('rotated_at')->label('Rotated')->dateTime(timezone: CredentialPresenter::timezone())->sortable(),
                 TextColumn::make('due_at')->label('Was due')->date(timezone: CredentialPresenter::timezone()),
@@ -38,7 +41,9 @@ class RotationsRelationManager extends RelationManager
                     ->state(fn (CredentialRotation $record): string => $record->isOnTime(CredentialPresenter::timezone()) ? 'On time' : 'Late')
                     ->badge()
                     ->color(fn (string $state): string => $state === 'On time' ? 'success' : 'warning'),
-                TextColumn::make('rotatedBy.name')->label('By'),
+                TextColumn::make('rotated_by')
+                    ->label('By')
+                    ->state(fn (CredentialRotation $record): ?string => $record->run instanceof RotationRun ? 'Automatic rotation' : $record->rotatedBy?->name),
                 TextColumn::make('notes')->limit(80)->wrap(),
                 TextColumn::make('evidence')
                     ->state(fn (CredentialRotation $record): ?HtmlString => $this->evidenceLinks($record))

@@ -19,15 +19,22 @@ use App\Core\People\Models\Person;
 use App\Core\Tasks\Actions\CreateTask;
 use App\Core\Tenancy\Facades\Tenancy;
 use App\Modules\Credentials\Actions\ClaimDueReminders;
+use App\Modules\Credentials\Actions\ClaimRotationRuns;
 use App\Modules\Credentials\Actions\CreateCalendarFeed;
+use App\Modules\Credentials\Actions\CreateRunner;
 use App\Modules\Credentials\Actions\RecordRotation;
+use App\Modules\Credentials\Actions\RequestRotation;
+use App\Modules\Credentials\Actions\SetAutomaticRotation;
 use App\Modules\Credentials\Models\Application;
 use App\Modules\Credentials\Models\Credential;
+use App\Modules\Credentials\Models\Runner;
 use Filament\Facades\Filament;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Notifications\AnonymousNotifiable;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
@@ -108,7 +115,7 @@ function populatedOrganisation(string $name): Organisation
 
     test()->actingAs($owner);
 
-    Tenancy::run($organisation, function () use ($owner): void {
+    Tenancy::run($organisation, function () use ($owner, $organisation): void {
         $owner->givePermissionTo(Ability::ManagePeople->value);
         app(InviteMember::class)->handle($owner, Str::lower(Str::random(8)).'@example.com', 'Editor');
         $department = Department::factory()->create();
@@ -124,6 +131,10 @@ function populatedOrganisation(string $name): Organisation
         app(CreateNotificationChannel::class)->handle($owner, ['type' => 'slack', 'name' => '#ops', 'webhook_url' => 'https://hooks.slack.com/services/T000/B000/XXXX']);
         app(ClaimDueReminders::class)->handle(now());
         app(CreateCalendarFeed::class)->handle($owner);
+        ['runner' => $runner, 'token' => $token] = app(CreateRunner::class)->handle($owner, ['name' => 'GitHub']);
+        app(SetAutomaticRotation::class)->handle($owner, $credential, automaticRotationData($runner));
+        app(RequestRotation::class)->handle($owner, $credential);
+        app(ClaimRotationRuns::class)->handle($organisation, $token);
         SubscriptionItem::factory()->create();
 
     });
@@ -159,6 +170,72 @@ function evidencePdf(string $name = 'evidence.pdf'): UploadedFile
 function staffRoleChanges(): EloquentCollection
 {
     return Tenancy::bypass('test: read the staff role changes', fn (): EloquentCollection => StaffRoleChange::query()->orderBy('created_at')->orderBy('id')->get());
+}
+
+/**
+ * Put the organisation on Team (the credentials module), optionally until a given time.
+ */
+function onTeamPlan(Organisation $organisation, ?Carbon $endsAt = null): void
+{
+    app(GrantModule::class)->handle(User::factory()->create(['platform_role' => PlatformRole::Admin]), $organisation, Module::Credentials, now()->subDays(200), $endsAt);
+}
+
+/**
+ * A rotation runner made through CreateRunner by the actor, with the token it was given.
+ *
+ * @return array{runner: Runner, token: string}
+ */
+function runnerFor(Organisation $organisation, User $actor, string $name = 'GitHub'): array
+{
+    return Tenancy::run($organisation, fn (): array => app(CreateRunner::class)->handle($actor, ['name' => $name]));
+}
+
+/**
+ * Automatic rotation settings as the runner contract's example has them. Overrides use dot notation, and a null
+ * override removes the key.
+ *
+ * @param  array<string, mixed>  $overrides
+ * @return array<string, mixed>
+ */
+function automaticRotationData(Runner $runner, array $overrides = []): array
+{
+    $data = [
+        'runner_id' => $runner->id,
+        'source' => 'openai',
+        'source_settings' => ['project_id' => 'proj_abc', 'service_account_id' => 'svc_acct_abc', 'key_lifetime_days' => null],
+        'destinations' => [
+            ['type' => 'laravel_cloud', 'secret_id' => 'sec-1', 'secret_name' => 'OPENAI_API_KEY', 'environment_ids' => ['env-1'], 'redeploy' => true],
+        ],
+    ];
+
+    foreach ($overrides as $key => $value) {
+        if ($value === null) {
+            Arr::forget($data, $key);
+        } else {
+            data_set($data, $key, $value);
+        }
+    }
+
+    return $data;
+}
+
+/**
+ * A credential named "OpenAI production key", due in this many days (negative: overdue), rotated by the runner.
+ *
+ * @param  array<string, mixed>  $attributes
+ */
+function automatedCredential(Organisation $organisation, User $actor, Runner $runner, int $dueInDays = 0, array $attributes = []): Credential
+{
+    return Tenancy::run($organisation, function () use ($actor, $runner, $dueInDays, $attributes): Credential {
+        $credential = Credential::factory()->dueIn($dueInDays)->create([
+            'application_id' => Application::factory()->create()->id,
+            'name' => 'OpenAI production key',
+            ...$attributes,
+        ]);
+        app(SetAutomaticRotation::class)->handle($actor, $credential, automaticRotationData($runner));
+
+        return $credential->refresh();
+    });
 }
 
 /**

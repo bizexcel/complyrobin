@@ -1,15 +1,14 @@
 <?php
 
 use App\Core\Access\Enums\SystemRole;
-use App\Core\Entitlements\Actions\GrantModule;
-use App\Core\Entitlements\Enums\Module;
-use App\Core\Identity\Enums\PlatformRole;
 use App\Core\Identity\Models\User;
 use App\Core\Organisations\Actions\CreateOrganisation;
 use App\Core\Organisations\Models\Organisation;
 use App\Core\Tenancy\Facades\Tenancy;
 use App\Filament\App\Pages\RotationEvidenceReports;
+use App\Modules\Credentials\Actions\ClaimRotationRuns;
 use App\Modules\Credentials\Actions\GenerateRotationEvidenceReport;
+use App\Modules\Credentials\Actions\ReportRotationRun;
 use App\Modules\Credentials\Jobs\BuildRotationEvidenceReport;
 use App\Modules\Credentials\Models\Application;
 use App\Modules\Credentials\Models\Credential;
@@ -32,11 +31,6 @@ beforeEach(function (): void {
     $this->owner = User::factory()->create(['name' => 'Aisyah Rahman']);
     $this->organisation = app(CreateOrganisation::class)->handle($this->owner, 'Acme');
 });
-
-function onTeamPlan(Organisation $organisation): void
-{
-    app(GrantModule::class)->handle(User::factory()->create(['platform_role' => PlatformRole::Admin]), $organisation, Module::Credentials, now()->subDays(200));
-}
 
 function prepareReport(?User $actor = null, int $days = 90, ?Organisation $organisation = null): void
 {
@@ -109,6 +103,21 @@ it('lists the period\'s rotations of this organisation only, marks late ones and
         ->and($csv)->toContain('2026-05-04 12:00')
         ->and($html)->toContain('Stripe live key')->toContain('Postmark token')->toContain($overdue->reference)->not->toContain('Globex payroll key')
         ->and(array_column($report->overdue, 'days_overdue'))->toBe([4]);
+});
+
+it('names the runner when a rotation was done automatically', function (): void {
+    onTeamPlan($this->organisation);
+    ['runner' => $runner, 'token' => $token] = runnerFor($this->organisation, $this->owner, 'GitHub');
+    automatedCredential($this->organisation, $this->owner, $runner, dueInDays: -1);
+    $claim = app(ClaimRotationRuns::class)->handle($this->organisation, $token);
+    app(ReportRotationRun::class)->handle($this->organisation, $token, [
+        'run' => $claim['jobs'][0]['run'], 'outcome' => 'succeeded', 'rotated_at' => now()->toIso8601String(),
+        'new_key' => ['id' => 'key_abc', 'hint' => 'AB12', 'expires_at' => null],
+        'old_keys_expire_at' => now()->addHours(48)->toIso8601String(), 'deployments' => [],
+    ]);
+
+    expect(array_column(buildReport()->rotations, 'rotated_by'))->toBe(['Automatic rotation (GitHub)'])
+        ->and(buildReport()->csv())->toContain('Automatic rotation (GitHub)');
 });
 
 it('neutralises spreadsheet formulas in the CSV', function (): void {
