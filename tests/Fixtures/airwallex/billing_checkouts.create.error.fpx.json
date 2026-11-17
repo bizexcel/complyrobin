@@ -1,0 +1,5 @@
+{
+  "code": "validation_error",
+  "message": "payment_options.payment_method_types include unavailable payment method types.",
+  "source": "payment_options.payment_method_types"
+}

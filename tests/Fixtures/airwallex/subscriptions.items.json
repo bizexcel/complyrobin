@@ -1,0 +1,52 @@
+{
+  "has_more": false,
+  "items": [
+    {
+      "applied_discounts": [],
+      "created_at": "2026-11-17T09:33:54+0000",
+      "current_period_ends_at": "2026-12-17T09:33:54+0000",
+      "current_period_starts_at": "2026-11-17T09:33:54+0000",
+      "id": "sit_sgpv4ct6kho8pd8ekb0",
+      "price": {
+        "active": true,
+        "billing_type": "IN_ADVANCE",
+        "created_at": "2026-11-17T09:33:35+0000",
+        "currency": "MYR",
+        "description": "ComplyRobin Team, monthly",
+        "id": "pri_sgpvng7wjho8pcx79vl",
+        "metadata": {
+          "app": "complyrobin"
+        },
+        "metered": false,
+        "pricing_model": "PER_UNIT",
+        "product": {
+          "active": true,
+          "api_compatibility_data": {
+            "request_id": "4f0057b0-749f-4560-b7f0-e0f36a317dfb"
+          },
+          "created_at": "2026-11-17T09:33:28+0000",
+          "description": "ComplyRobin credentials register, Team plan.",
+          "id": "prd_sgpvng7wjho8pct0ieo",
+          "metadata": {
+            "app": "complyrobin"
+          },
+          "name": "ComplyRobin Team",
+          "unit": "organisation",
+          "updated_at": "2026-11-17T09:33:28+0000"
+        },
+        "product_id": "prd_sgpvng7wjho8pct0ieo",
+        "recurring": {
+          "period": 1,
+          "period_unit": "MONTH"
+        },
+        "tax_included": false,
+        "type": "RECURRING",
+        "unit_amount": 49,
+        "updated_at": "2026-11-17T09:33:35+0000"
+      },
+      "quantity": 1,
+      "subscription_id": "sub_sgpv4ct6kho8pd8ekaz",
+      "updated_at": "2026-11-17T09:33:54+0000"
+    }
+  ]
+}

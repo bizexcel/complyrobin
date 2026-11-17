@@ -1,0 +1,36 @@
+{
+  "applied_discounts": [],
+  "automatic_tax_status": "DISABLED",
+  "billing_customer_id": "bcus_sgpv8sltmho8pd165e4",
+  "billing_cycle_anchor_at": "2026-12-17T09:33:54+0000",
+  "cancel_at_period_end": true,
+  "cancel_requested_at": "2026-11-17T09:34:48+0000",
+  "collection_method": "CHARGE_ON_CHECKOUT",
+  "created_at": "2026-11-17T09:33:54+0000",
+  "currency": "MYR",
+  "current_period_ends_at": "2026-12-17T09:33:54+0000",
+  "current_period_starts_at": "2026-11-17T09:33:54+0000",
+  "days_until_due": 0,
+  "default_invoice_template": {},
+  "enable_automatic_tax": false,
+  "id": "sub_sgpv4ct6kho8pd8ekaz",
+  "latest_invoice_id": "inv_sgpv4ct6kho8pd8ewnj",
+  "legal_entity_id": "le_T_IreKVpOp2HYkC0KbdzFQ",
+  "linked_payment_account_id": "acct_joe-kjQKM1-kSRtGjTX51w",
+  "metadata": {
+    "app": "complyrobin",
+    "organisation_id": "0195f0a0-0000-7000-8000-000000000001",
+    "type": "credentials"
+  },
+  "recurring": {
+    "period": 1,
+    "period_unit": "MONTH"
+  },
+  "starts_at": "2026-11-17T09:33:54+0000",
+  "status": "UNPAID",
+  "update_at_period_end": false,
+  "updated_at": "2026-11-17T09:34:48+0000",
+  "cancel_at": "2026-12-17T09:33:54+0000",
+  "total_billing_cycles": 1,
+  "remaining_billing_cycles": 0
+}

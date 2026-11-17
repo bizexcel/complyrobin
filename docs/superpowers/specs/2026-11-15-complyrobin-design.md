@@ -243,7 +243,7 @@ Every area has the same subfolders: `Models/`, `Actions/`, `Enums/`, `Data/`, `P
 - `frameworks` and `framework_requirements`:
   - ISO 22301 clauses, ISO 27001:2022 clauses, and Annex A's **93 controls**.
   - The 2022 attributes are stored as jsonb.
-- Platform-level `plans`/`prices` holding the Airwallex ids.
+- No `plans`/`prices` tables (decided 2026-11-17, as Cashier keeps none): products and prices are made once in the Airwallex dashboard, and their price ids live in `config/billing.php` from the environment, different in demo and production.
 - `enquiries`, `sent_emails`.
 
 **Core tenant tables**
@@ -495,9 +495,10 @@ Every phase must pass Pest, Larastan, Pint and arch tests, and is deployed to a 
 
 **Phase 3: Billing, back office and MVP launch** (formerly Phases 5–6, brought forward so the MVP can be sold)
 - The Cashier-style Airwallex layer (section 5), with plans for the `credentials` module (e.g. a free tier capped by credential count, then paid tiers).
-- The minimal admin panel grows: plans, catalogue editing, enquiries, the email log.
+- The minimal admin panel grows: catalogue editing, enquiries, the email log. (Plans are not edited here: their Airwallex price ids are configuration.)
 - Launch hardening for the MVP: CSP, rate limits, a restore drill, an external pen test on the credentials surface, then production cut-over at `app.complyrobin.com`.
 - *Exit:* billing webhook tests (replay, bad signature, transitions) and the restore drill pass.
+- **Status (2026-11-17): started.** The parts that don't call Airwallex are built and tested, copied from Laravel Cashier's source: `config/billing.php`, Cashier's three migrations (customer columns on `organisations`; `subscriptions` and `subscription_items` as tenant tables), `Cashier`, `Billable` with `ManagesCustomer`/`ManagesSubscriptions`, `Subscription` and `SubscriptionItem` with every status check and scope, their factories, and the signed, idempotent webhook inbox (`billing_webhook_calls`, keyed by `airwallex_id`). `Entitlements` now counts valid subscriptions. Products are named with the brand first ("ComplyRobin Team", "ComplyRobin Enterprise", later "ComplyRobin BCMS"/"ComplyRobin ISMS") and tagged `app: complyrobin`, since the Airwallex account may also hold Cliniclah's products; code only ever uses ids. The sandbox spike (Phase 0, spike 2) ran on 2026-11-17; its recordings are in `tests/Fixtures/airwallex`. Built from them: `AirwallexClient`, billing customers, `newSubscription()->checkout()` (with trials), `cancel()`/`cancelNow()`, `syncAirwallexStatus()` and invoices. Found: Airwallex has no `PAST_DUE` (Cashier's past due is `UNPAID`), can't resume a cancellation, renders invoices itself, and refuses FPX for subscriptions. Still to build: the `handle{Event}` methods, which need a real webhook event recorded at a public URL.
 
 **Phase 4: Shared GRC core**
 - Catalogues (ISO 22301; ISO 27001:2022 with 93 controls) and templates.
@@ -564,9 +565,7 @@ app/Billing/
   Exceptions/InvalidCustomer.php, CustomerAlreadyCreated.php, SubscriptionUpdateFailure.php,
              AirwallexApiError.php, InvalidWebhookSignature.php
   Console/WebhookCommand.php   `airwallex:webhook`: creates the endpoint through the API if Airwallex allows it; otherwise prints setup steps
-  Console/SyncPricesCommand.php `airwallex:sync-prices`: pushes local plans and prices to Airwallex explicitly
-                               (never from model observers, so seeding never calls the API)
-  BillingServiceProvider.php   registers the config, the webhook route (named `billing.webhook`) and commands
+  BillingServiceProvider.php   registers the webhook route (named `cashier.webhook`, as in Cashier) and commands
 config/billing.php             mirrors config/cashier.php: client_id, api_key, webhook.secret, webhook.tolerance,
                                env (demo|production), api_version, path ('airwallex'), currency ('myr'),
                                currency_locale ('en_MY'), logger
@@ -613,7 +612,7 @@ $organisation->subscription('isms')->cancel();
 
 **Tests (Cashier's own guidance, adapted):**
 - Unit and feature tests use `Http::fake()` with JSON fixtures recorded from the Airwallex demo environment.
-- A separate `@group airwallex` suite runs against the real demo environment, both in CI on main and manually.
+- A separate `@group airwallex` suite runs against the real demo environment, manually only (never in CI, so pushes never create customers or subscriptions there).
 - Covered cases: subscription status predicates and scopes, the signature middleware (valid, bad, stale), duplicate and replayed events, and checkout to webhook to `subscribed()` returning true.
 
 ## 6. Project rules (Laravel Boost style)
