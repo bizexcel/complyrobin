@@ -33,4 +33,22 @@ return [
         'max_kilobytes' => 10 * 1024,
         'mimes' => ['pdf', 'png', 'jpg', 'jpeg', 'webp', 'txt'],
     ],
+
+    // Rotation runners: the customer's own program swaps keys and reports back. ComplyRobin never sees a key.
+    'automatic_rotation' => [
+        // A claimed run the runner hasn't reported on within this many minutes is given up on.
+        'claim_expires_minutes' => 60,
+
+        // After a run fails or is given up on, the credential isn't handed out again for this many hours.
+        'retry_after_hours' => 6,
+
+        // How long the old keys keep working after a new one is in place.
+        'grace_hours' => 48,
+
+        // The most credentials handed to a runner in one claim.
+        'max_jobs_per_claim' => 5,
+
+        // How far a runner's clock may be behind ours when it says when it rotated.
+        'clock_skew_minutes' => 5,
+    ],
 ];

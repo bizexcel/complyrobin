@@ -51,6 +51,12 @@ class AppServiceProvider extends ServiceProvider
 
         Event::listen(MessageSent::class, RecordSentEmail::class);
 
+        // Rotation runners poll every few minutes; a failing runner retrying in a loop is slowed down per token.
+        RateLimiter::for('runner-api', fn (Request $request): array => [
+            Limit::perMinute(120)->by('runner-ip:'.$request->ip()),
+            Limit::perMinute(30)->by('runner-token:'.hash('sha256', (string) $request->bearerToken())),
+        ]);
+
         // Telegram puts the bot token in the request path: never send it to monitoring.
         Nightwatch::redactOutgoingRequests(function (OutgoingRequest $request): void {
             $request->url = (string) preg_replace('#/bot[^/]+/#', '/bot[redacted]/', $request->url);

@@ -9,6 +9,7 @@ use App\Core\Tenancy\Facades\Tenancy;
 use App\Modules\Credentials\Actions\ClaimDueReminders;
 use App\Modules\Credentials\Actions\RecordRotation;
 use App\Modules\Credentials\Actions\RevokeCredential;
+use App\Modules\Credentials\Actions\SetAutomaticRotation;
 use App\Modules\Credentials\Jobs\DeliverReminders;
 use App\Modules\Credentials\Models\Application;
 use App\Modules\Credentials\Models\Credential;
@@ -248,4 +249,19 @@ it('marks reminders failed when delivery fails for good', function (): void {
     Tenancy::run($this->organisation, fn () => new DeliverReminders(array_merge(...array_values($ids)))->failed(new RuntimeException('mail down')));
 
     expect(Tenancy::run($this->organisation, fn () => Reminder::query()->sole()->failed_at))->not->toBeNull();
+});
+
+it('sends no upcoming reminder for a credential a runner rotates, but still says when it is overdue', function (): void {
+    onTeamPlan($this->organisation);
+    $runner = runnerFor($this->organisation, $this->admin)['runner'];
+    $upcoming = credentialDueAt('2026-06-08 03:00');
+    $overdue = credentialDueAt('2026-05-29 03:00');
+
+    foreach ([$upcoming, $overdue] as $credential) {
+        Tenancy::run($this->organisation, fn () => app(SetAutomaticRotation::class)->handle($this->admin, $credential, automaticRotationData($runner)));
+    }
+
+    sendReminders();
+
+    expect(sentSteps())->toBe(['overdue 3']);
 });

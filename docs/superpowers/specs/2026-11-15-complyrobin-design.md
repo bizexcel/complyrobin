@@ -57,9 +57,55 @@ Laravel 13 · Filament 5 · PHP 8.5 · Laravel Cloud · Postgres
   - CSV import of an existing spreadsheet (Filament Importer).
 - **Later, not in v1:**
   - An **encrypted vault add-on**: per-tenant envelope encryption, reveal-with-MFA, access logged. Its columns are added when it ships.
-  - **Vendor integrations** that read token age automatically: GitHub, Laravel Cloud, AWS.
+  - **Read-only vendor integrations** that read token age automatically: GitHub, Laravel Cloud, AWS. (Automatic rotation itself is the runner below.)
   - SaaS renewals and spend.
 - **Bridge to ISO later:** in the ISMS phase, `applications` and `credentials` appear in the asset register and can be linked to risks and controls. In the BCMS phase, `applications` are selectable as BIA dependencies.
+
+### Automatic rotation (customer-side runner)
+**Decision (2026-11-17):** keys are rotated by a **rotation runner**, a small program the customer runs in their own GitHub account or Laravel app, which holds their admin tokens (an OpenAI admin key, a Laravel Cloud API token). ComplyRobin stores no admin token and no key: it says what is due, and records what the runner reports as rotation evidence. Hosted rotation, where ComplyRobin holds the admin tokens, is deferred to Phase 7 with the vault. The runner itself lives in its own public repository.
+
+- **Runners** (`runners`, tenant): a named runner and the sha-256 of its token (`crr_` + 60 characters), shown once. Revoked, never deleted.
+- **Automatic rotations** (`automatic_rotations`, tenant, one per credential): which runner, the source (OpenAI: project and a service account dedicated to this credential) and the destinations (Laravel Cloud: secret id, name, environments, whether to redeploy). Ids only; every field refuses anything that looks like a key.
+- **Rotation runs** (`rotation_runs`, tenant): each time a runner claimed a credential, and how it went. A success writes the same `credential_rotations` row as "Record rotation" and links to it. At most one open run per credential; a run not reported within an hour is given up on and the owner is told. Upcoming reminders are skipped for automatically rotated credentials; overdue reminders stay as the alarm.
+- A Team feature (`Feature::AutomaticRotation`).
+
+**The runner contract**
+
+Both endpoints: no session, cookies or CSRF. `{organisation}` is the organisation's slug (a previous slug also works). Any problem with the slug or the token (unknown, revoked, another organisation's) is `401 {"message":"Unauthenticated."}`. A plan without the feature is `200 {"jobs":[]}` for claims and `403` for reports.
+
+**Claim** — `POST /api/runner/{organisation}/claims`, empty body. Response `200`:
+
+```json
+{
+  "jobs": [
+    {
+      "run": "0193…uuid",
+      "credential": {"reference": "CRD-0042", "name": "OpenAI production key"},
+      "source": {"type": "openai", "project_id": "proj_abc", "service_account_id": "svc_acct_abc", "key_lifetime_days": null},
+      "destinations": [
+        {"type": "laravel_cloud", "secret_id": "sec-1", "secret_name": "OPENAI_API_KEY", "environment_ids": ["env-1"], "redeploy": true}
+      ],
+      "grace_hours": 48
+    }
+  ]
+}
+```
+
+What the runner does with a job (Plan 2, recorded here so both sides agree): mint a new key for the service account; seal it and update each destination secret; redeploy the listed environments when `redeploy` is true; set every *other* key of that service account to expire in `grace_hours`; report. The service account is dedicated to one credential, which is what makes "every other key" safe and cleans up keys left by a half-finished run.
+
+**Report** — `POST /api/runner/{organisation}/reports`:
+
+```json
+{"run": "0193…", "outcome": "succeeded", "rotated_at": "2026-11-17T10:00:00Z",
+ "new_key": {"id": "key_abc", "hint": "AB12", "expires_at": null},
+ "old_keys_expire_at": "2026-11-19T10:00:00Z", "deployments": ["dep-1"]}
+```
+
+```json
+{"run": "0193…", "outcome": "failed", "step": "push", "message": "Laravel Cloud answered 422."}
+```
+
+`step` is one of `mint`, `push`, `deploy`, `retire`. Responses: `200 {"recorded":true}`; `404` when the run isn't this runner's; `409 {"message":"This run has already been reported."}` when the run is finished with a different outcome; `422` with Laravel's validation errors. Reporting the same outcome twice is `200` and writes nothing new.
 
 ## Packages (versions checked on Packagist, Nov 2026)
 
@@ -435,6 +481,17 @@ Every phase must pass Pest, Larastan, Pint and arch tests, and is deployed to a 
   - organisation settings and the reminder policy; the Members page with seats and invitations;
   - on Team: the rotation evidence report (PDF and CSV), the audit trail CSV export, and CSV import.
   - Every exit test above holds. The calendar link is protected by a random token stored only as a hash, rather than a signature. CSV import is in-house, not Filament's importer, because Filament's failed-rows download binds its record outside the organisation.
+
+**Phase 2b: Automatic rotation** (the ComplyRobin side; plan `docs/superpowers/plans/2026-11-17-automatic-rotation-runner-api.md`)
+- Runners, automatic rotation settings per credential, rotation runs, the two runner endpoints, the screens.
+- *Exit:* a report that carries a key is refused and nothing is stored; a repeated or late report never records twice; a credential is never handed out twice while a run is open, nor within 6 hours of a failure; a downgrade, revocation or deletion stops new work; another organisation's token or run is refused; the isolation suite covers the three tables.
+- **Status (2026-11-17): built.** Proved by:
+  - A report carrying a key: `RotationRunReportsTest` "refuses a report that carries something that looks like a key, and keeps it nowhere".
+  - Lost or late reports: `RotationRunReportsTest` "records nothing new when the same report arrives twice" and "accepts a late success for a run it had given up on".
+  - Double claims and retry storms: `RotationRunClaimsTest` "never hands out the same credential twice while a run is open" and "gives up on a run after an hour, tells the owner, and retries after six hours".
+  - Downgrade, revocation, deletion: `RotationRunClaimsTest` "hands out nothing once the organisation is back on Free" and "hands out nothing for a revoked or deleted credential"; `RotationRunReportsTest` "refuses a success for a credential revoked meanwhile, and marks the run failed"; `RunnerApiTest` 401 for a revoked token.
+  - Another organisation: `RunnerApiTest` "answers 401 when one organisation's token is used on another" and "answers 404 when another organisation's run is reported"; the tables are covered by the tenancy suite through `appModels()`.
+  - The runner itself (Plan 2) is not built yet.
 
 **Phase 3: Billing, back office and MVP launch** (formerly Phases 5–6, brought forward so the MVP can be sold)
 - The Cashier-style Airwallex layer (section 5), with plans for the `credentials` module (e.g. a free tier capped by credential count, then paid tiers).

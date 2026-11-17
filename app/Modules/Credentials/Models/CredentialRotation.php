@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
@@ -45,6 +46,16 @@ class CredentialRotation extends Model implements HasMedia
     public function rotatedBy(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * The runner's run that recorded this rotation, when it was automatic.
+     *
+     * @return HasOne<RotationRun, $this>
+     */
+    public function run(): HasOne
+    {
+        return $this->hasOne(RotationRun::class, 'credential_rotation_id');
     }
 
     public function registerMediaCollections(): void

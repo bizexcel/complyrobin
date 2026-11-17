@@ -7,6 +7,7 @@ use App\Core\Identity\Models\User;
 use App\Modules\Credentials\Models\Credential;
 use App\Modules\Credentials\Models\CredentialRotation;
 use App\Modules\Credentials\Rules\NotASecret;
+use App\Modules\Credentials\Support\RotationWriter;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
@@ -54,18 +55,13 @@ final readonly class RecordRotation
                 }
             })->validate();
 
-            $rotation = CredentialRotation::query()->create([
-                'credential_id' => $locked->getKey(),
-                'rotated_by_id' => $actor->getKey(),
-                'rotated_at' => $validated['rotated_at'],
-                'due_at' => $locked->next_rotation_at,
-                'notes' => $validated['notes'] ?? null,
-            ]);
-
-            $locked->forceFill([
-                'last_rotated_at' => Carbon::parse($validated['rotated_at']),
-                'expires_at' => $validated['expires_at'] ?? null,
-            ])->save();
+            $rotation = RotationWriter::write(
+                $locked,
+                $actor,
+                Carbon::parse($validated['rotated_at']),
+                isset($validated['expires_at']) ? Carbon::parse($validated['expires_at']) : null,
+                $validated['notes'] ?? null,
+            );
 
             foreach ($evidence as $file) {
                 $rotation->addMedia($file)->toMediaCollection('evidence');

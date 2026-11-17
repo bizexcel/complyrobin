@@ -7,11 +7,14 @@ use App\Filament\App\Resources\Credentials\CredentialPresenter;
 use App\Modules\Credentials\Actions\DeleteCredential;
 use App\Modules\Credentials\Enums\CredentialStatus;
 use App\Modules\Credentials\Enums\Environment;
+use App\Modules\Credentials\Models\AutomaticRotation;
 use App\Modules\Credentials\Models\Credential;
 use App\Modules\Credentials\Support\RotationSchedule;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
+use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -22,6 +25,7 @@ class CredentialsTable
     public static function configure(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with('automaticRotation'))
             ->columns([
                 TextColumn::make('reference')->searchable()->sortable(),
                 TextColumn::make('name')->searchable()->sortable(),
@@ -34,6 +38,12 @@ class CredentialsTable
                     ->formatStateUsing(fn (CredentialStatus $state): string => $state->label())
                     ->badge()
                     ->color(fn (CredentialStatus $state): string => CredentialPresenter::colour($state)),
+                IconColumn::make('automatic')
+                    ->label('Automatic')
+                    ->state(fn (Credential $record): bool => $record->automaticRotation instanceof AutomaticRotation)
+                    ->icon(fn (bool $state): ?Heroicon => $state ? Heroicon::OutlinedBolt : null)
+                    ->tooltip(fn (Credential $record): ?string => $record->automaticRotation instanceof AutomaticRotation ? 'Rotated by a runner' : null)
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->defaultSort('next_rotation_at')
             ->filters([

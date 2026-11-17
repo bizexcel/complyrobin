@@ -6,7 +6,7 @@
  * can be added until the organisation is back under the limit or upgrades.
  */
 
-$paidFeatures = ['chat_channels', 'whatsapp', 'escalation', 'evidence_report', 'audit_export', 'spreadsheet_import'];
+$paidFeatures = ['chat_channels', 'whatsapp', 'escalation', 'evidence_report', 'audit_export', 'spreadsheet_import', 'automatic_rotation'];
 
 return [
     'free' => [

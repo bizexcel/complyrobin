@@ -2,6 +2,7 @@
 
 namespace App\Filament\App\Resources\Credentials\Schemas;
 
+use App\Filament\App\Resources\Credentials\AutomaticRotationPresenter;
 use App\Filament\App\Resources\Credentials\CredentialPresenter;
 use App\Modules\Credentials\Enums\CredentialStatus;
 use App\Modules\Credentials\Enums\CredentialType;
@@ -34,6 +35,7 @@ class CredentialInfolist
                 TextEntry::make('last_rotated_at')->label('Last rotated')->dateTime(timezone: CredentialPresenter::timezone())->placeholder('Never'),
                 TextEntry::make('next_rotation_at')->label('Due')->date(timezone: CredentialPresenter::timezone()),
                 TextEntry::make('expires_at')->label('Expires')->dateTime(timezone: CredentialPresenter::timezone())->placeholder('—'),
+                AutomaticRotationPresenter::section(),
             ]);
     }
 }
