@@ -28,7 +28,7 @@ it('lists only the current organisation\'s credentials and shows how many the pl
     Livewire::test(ListCredentials::class)
         ->assertCanSeeTableRecords($ours)
         ->assertCanNotSeeTableRecords($theirs)
-        ->assertSee('3 of 10 credentials on Free');
+        ->assertSee('3 of 5 credentials on Free');
 });
 
 it('filters overdue credentials', function (): void {
