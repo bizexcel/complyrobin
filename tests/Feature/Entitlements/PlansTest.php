@@ -62,3 +62,9 @@ it('only grants a plan with the credentials module, and never Free', function (M
     'a plan on an ISO module' => [Module::Isms, Plan::Enterprise],
     'the Free plan' => [Module::Credentials, Plan::Free],
 ])->throws(InvalidArgumentException::class);
+
+it('includes automatic rotation on Team and Enterprise, not on Free', function (): void {
+    expect(Plan::Free->allows(Feature::AutomaticRotation))->toBeFalse()
+        ->and(Plan::Team->allows(Feature::AutomaticRotation))->toBeTrue()
+        ->and(Plan::Enterprise->allows(Feature::AutomaticRotation))->toBeTrue();
+});

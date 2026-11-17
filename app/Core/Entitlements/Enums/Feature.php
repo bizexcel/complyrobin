@@ -22,4 +22,7 @@ enum Feature: string
     case AuditExport = 'audit_export';
 
     case SpreadsheetImport = 'spreadsheet_import';
+
+    /** A rotation runner swaps keys on schedule and records the evidence. */
+    case AutomaticRotation = 'automatic_rotation';
 }
