@@ -11,6 +11,7 @@ use App\Core\Organisations\Actions\CreateOrganisation;
 use App\Core\Tenancy\Facades\Tenancy;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Client\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\ValidationException;
 
@@ -86,4 +87,43 @@ it('gives a free trial only the first time an organisation subscribes to a modul
 
     Http::assertSent(fn (Request $request): bool => str_ends_with($request->url(), 'billing_checkouts/create')
         && ! isset($request['subscription_data']['trial_ends_at']));
+});
+
+it('remembers the open checkout and cancels it when another is started, so two tabs can\'t pay twice', function (): void {
+    fakeAirwallex([
+        'billing_customers/create' => ['billing_customers.create', 201],
+        'billing_customers/bcus_sgpv8sltmho8pd165e4' => ['billing_customers.retrieve'],
+        'billing_checkouts/create' => ['billing_checkouts.create', 201],
+        'billing_checkouts/bco_sgpv5qsx9ho8pdh0vq9' => ['billing_checkouts.retrieve'],
+        'billing_checkouts/bco_sgpv5qsx9ho8pdh0vq9/cancel' => ['billing_checkouts.cancel'],
+    ]);
+
+    startCheckout($this->owner);
+    expect(Cache::get(StartSubscriptionCheckout::openCheckoutKey($this->organisation, 'credentials')))->toBe('bco_sgpv5qsx9ho8pdh0vq9');
+
+    startCheckout($this->owner);
+
+    Http::assertSent(fn (Request $request): bool => str_ends_with($request->url(), 'billing_checkouts/bco_sgpv5qsx9ho8pdh0vq9/cancel'));
+    expect(Http::recorded(fn (Request $request): bool => str_ends_with($request->url(), 'billing_customers/create')))->toHaveCount(1)
+        ->and(Http::recorded(fn (Request $request): bool => str_ends_with($request->url(), 'billing_checkouts/create')))->toHaveCount(2);
+});
+
+it('refuses a new checkout while the last one is paid and waiting for its webhook', function (): void {
+    $paid = airwallexFixture('billing_checkouts.retrieve');
+    $paid['status'] = 'COMPLETED';
+    fakeAirwallex([]);
+    Http::fake(['api-demo.airwallex.com/api/v1/billing/billing_checkouts/bco_sgpv5qsx9ho8pdh0vq9' => Http::response($paid)]);
+    Cache::put(StartSubscriptionCheckout::openCheckoutKey($this->organisation, 'credentials'), 'bco_sgpv5qsx9ho8pdh0vq9', now()->addDay());
+
+    expect(fn (): mixed => startCheckout($this->owner))->toThrow(ValidationException::class, 'Your payment is still being confirmed.');
+    Http::assertNotSent(fn (Request $request): bool => str_contains($request->url(), 'billing_checkouts/create'));
+});
+
+it('refuses a checkout in a currency the organisation\'s Airwallex customer wasn\'t made with', function (): void {
+    fakeAirwallex(['billing_customers/bcus_sgpv8sltmho8pd165e4' => ['billing_customers.retrieve']]);
+    config(['billing.prices.credentials.usd.monthly' => 'pri_usd_monthly']);
+    Tenancy::run($this->organisation, fn () => $this->organisation->forceFill(['country' => 'US', 'airwallex_id' => 'bcus_sgpv8sltmho8pd165e4'])->save());
+
+    expect(fn (): mixed => startCheckout($this->owner))->toThrow(ValidationException::class, 'Your organisation is billed in MYR.');
+    Http::assertNotSent(fn (Request $request): bool => str_contains($request->url(), 'billing_checkouts/create'));
 });

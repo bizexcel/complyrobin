@@ -2,6 +2,7 @@
 
 namespace App\Billing\Http\Controllers;
 
+use App\Billing\Actions\StartSubscriptionCheckout;
 use App\Billing\Airwallex\AirwallexObject;
 use App\Billing\Airwallex\AirwallexSubscription;
 use App\Billing\Cashier;
@@ -18,6 +19,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -39,6 +41,8 @@ class WebhookController extends Controller
      *
      * Each event is stored once, by its id, in the same transaction as its handler, so a repeated delivery is
      * acknowledged without being handled again, and a handler that fails leaves nothing stored for the retry to skip.
+     * The subscription an event is about is fetched from Airwallex before the transaction opens, so no database
+     * transaction is held open while Airwallex answers.
      */
     public function handleWebhook(Request $request): Response
     {
@@ -51,7 +55,9 @@ class WebhookController extends Controller
         /** @var array{id: string, name: string}&array<string, mixed> $payload */
         $method = 'handle'.Str::studly(str_replace('.', '_', $payload['name']));
 
-        return DB::transaction(function () use ($payload, $method): Response {
+        $subscription = method_exists($this, $method) ? $this->subscriptionFromEvent($payload) : [null, null, []];
+
+        return DB::transaction(function () use ($payload, $method, $subscription): Response {
             if (! WebhookCall::record($payload)) {
                 return $this->successMethod();
             }
@@ -59,7 +65,7 @@ class WebhookController extends Controller
             WebhookReceived::dispatch($payload);
 
             if (method_exists($this, $method)) {
-                $response = $this->{$method}($payload);
+                $response = $this->{$method}($payload, ...$subscription);
 
                 WebhookHandled::dispatch($payload);
 
@@ -77,15 +83,13 @@ class WebhookController extends Controller
      * fetched one is the latest state whatever order events arrive in, and it is the shape recorded in the fixtures.
      *
      * @param  array<string, mixed>  $payload
+     * @param  list<array{id: string, quantity?: int, price: array{id: string, product_id: string}}>  $items
      */
-    protected function handleSubscriptionCreated(array $payload): Response
+    protected function handleSubscriptionCreated(array $payload, ?Organisation $user = null, ?AirwallexObject $data = null, array $items = []): Response
     {
-        [$user, $data] = $this->subscriptionFromEvent($payload);
-
         if ($user instanceof Organisation && $data instanceof AirwallexObject) {
-            Tenancy::run($user, function () use ($user, $data): void {
+            Tenancy::run($user, function () use ($user, $data, $items): void {
                 if (! $user->subscriptions()->where('airwallex_id', $data->id)->exists()) {
-                    $items = $this->subscriptionItems($data);
                     $firstItem = $items[0] ?? null;
                     $isSinglePrice = count($items) === 1;
 
@@ -110,6 +114,9 @@ class WebhookController extends Controller
                 }
             });
 
+            // The checkout this subscription came from is no longer open...
+            Cache::forget(StartSubscriptionCheckout::openCheckoutKey($user, (string) $data->metadata['type']));
+
             app(Entitlements::class)->forget($user);
         }
 
@@ -120,40 +127,44 @@ class WebhookController extends Controller
      * Handle subscription in trial.
      *
      * @param  array<string, mixed>  $payload
+     * @param  list<array{id: string, quantity?: int, price: array{id: string, product_id: string}}>  $items
      */
-    protected function handleSubscriptionInTrial(array $payload): Response
+    protected function handleSubscriptionInTrial(array $payload, ?Organisation $user = null, ?AirwallexObject $data = null, array $items = []): Response
     {
-        return $this->handleSubscriptionUpdated($payload);
+        return $this->handleSubscriptionUpdated($payload, $user, $data, $items);
     }
 
     /**
      * Handle subscription active.
      *
      * @param  array<string, mixed>  $payload
+     * @param  list<array{id: string, quantity?: int, price: array{id: string, product_id: string}}>  $items
      */
-    protected function handleSubscriptionActive(array $payload): Response
+    protected function handleSubscriptionActive(array $payload, ?Organisation $user = null, ?AirwallexObject $data = null, array $items = []): Response
     {
-        return $this->handleSubscriptionUpdated($payload);
+        return $this->handleSubscriptionUpdated($payload, $user, $data, $items);
     }
 
     /**
      * Handle subscription unpaid.
      *
      * @param  array<string, mixed>  $payload
+     * @param  list<array{id: string, quantity?: int, price: array{id: string, product_id: string}}>  $items
      */
-    protected function handleSubscriptionUnpaid(array $payload): Response
+    protected function handleSubscriptionUnpaid(array $payload, ?Organisation $user = null, ?AirwallexObject $data = null, array $items = []): Response
     {
-        return $this->handleSubscriptionUpdated($payload);
+        return $this->handleSubscriptionUpdated($payload, $user, $data, $items);
     }
 
     /**
      * Handle subscription modified.
      *
      * @param  array<string, mixed>  $payload
+     * @param  list<array{id: string, quantity?: int, price: array{id: string, product_id: string}}>  $items
      */
-    protected function handleSubscriptionModified(array $payload): Response
+    protected function handleSubscriptionModified(array $payload, ?Organisation $user = null, ?AirwallexObject $data = null, array $items = []): Response
     {
-        return $this->handleSubscriptionUpdated($payload);
+        return $this->handleSubscriptionUpdated($payload, $user, $data, $items);
     }
 
     /**
@@ -161,18 +172,16 @@ class WebhookController extends Controller
      * unpaid and modified events share.
      *
      * @param  array<string, mixed>  $payload
+     * @param  list<array{id: string, quantity?: int, price: array{id: string, product_id: string}}>  $items
      */
-    protected function handleSubscriptionUpdated(array $payload): Response
+    protected function handleSubscriptionUpdated(array $payload, ?Organisation $user = null, ?AirwallexObject $data = null, array $items = []): Response
     {
-        [$user, $data] = $this->subscriptionFromEvent($payload);
-
         if ($user instanceof Organisation && $data instanceof AirwallexObject) {
-            Tenancy::run($user, function () use ($user, $data): void {
+            Tenancy::run($user, function () use ($user, $data, $items): void {
                 $subscription = $user->subscriptions()->firstOrNew(['airwallex_id' => $data->id]);
 
                 $subscription->type ??= $data->metadata['type'];
 
-                $items = $this->subscriptionItems($data);
                 $firstItem = $items[0] ?? null;
                 $isSinglePrice = count($items) === 1;
 
@@ -218,14 +227,25 @@ class WebhookController extends Controller
     }
 
     /**
+     * Handle a paid invoice: its subscription is brought up to date, so a renewal paid after a failed attempt unlocks
+     * the module again without waiting for the subscription's own event.
+     *
+     * @param  array<string, mixed>  $payload
+     * @param  list<array{id: string, quantity?: int, price: array{id: string, product_id: string}}>  $items
+     */
+    protected function handleInvoicePaymentPaid(array $payload, ?Organisation $user = null, ?AirwallexObject $data = null, array $items = []): Response
+    {
+        return $this->handleSubscriptionUpdated($payload, $user, $data, $items);
+    }
+
+    /**
      * Handle the cancellation of a subscription.
      *
      * @param  array<string, mixed>  $payload
+     * @param  list<array{id: string, quantity?: int, price: array{id: string, product_id: string}}>  $items
      */
-    protected function handleSubscriptionCancelled(array $payload): Response
+    protected function handleSubscriptionCancelled(array $payload, ?Organisation $user = null, ?AirwallexObject $data = null, array $items = []): Response
     {
-        [$user, $data] = $this->subscriptionFromEvent($payload);
-
         if ($user instanceof Organisation && $data instanceof AirwallexObject) {
             Tenancy::run($user, function () use ($user, $data): void {
                 $user->subscriptions()->where('airwallex_id', $data->id)->get()
@@ -242,25 +262,25 @@ class WebhookController extends Controller
     }
 
     /**
-     * The organisation and the Airwallex subscription an event is about, or nulls when the subscription isn't
-     * ComplyRobin's: the Airwallex account is shared with other apps, whose events this endpoint receives too.
+     * The organisation, the Airwallex subscription and its items an event is about, or nulls when the subscription
+     * isn't ComplyRobin's: the Airwallex account is shared with other apps, whose events this endpoint receives too.
      *
-     * @param  array<string, mixed>  $payload
-     * @return array{0: Organisation|null, 1: AirwallexObject|null}
+     * @param  array{id: string, name: string}&array<string, mixed>  $payload
+     * @return array{0: Organisation|null, 1: AirwallexObject|null, 2: list<array{id: string, quantity?: int, price: array{id: string, product_id: string}}>}
      */
     protected function subscriptionFromEvent(array $payload): array
     {
-        $id = data_get($payload, 'data.object.id');
+        $id = $this->subscriptionIdFromEvent($payload);
 
-        if (! is_string($id) || ! str_starts_with($id, 'sub_')) {
-            return [null, null];
+        if ($id === null) {
+            return [null, null, []];
         }
 
         $data = Cashier::airwallex()->subscriptions->retrieve($id);
         $metadata = (array) $data->metadata;
 
         if (($metadata['app'] ?? null) !== 'complyrobin' || Module::tryFrom((string) ($metadata['type'] ?? '')) === null) {
-            return [null, null];
+            return [null, null, []];
         }
 
         $user = $this->getUserByAirwallexId($data->billing_customer_id);
@@ -268,10 +288,35 @@ class WebhookController extends Controller
         if (! $user instanceof Organisation || (isset($metadata['organisation_id']) && $metadata['organisation_id'] !== $user->getKey())) {
             Log::warning('billing.webhook.unmatched_subscription', ['subscription' => $id, 'event' => $payload['id'] ?? null]);
 
-            return [null, null];
+            return [null, null, []];
         }
 
-        return [$user, $data];
+        return [$user, $data, $this->subscriptionItems($data)];
+    }
+
+    /**
+     * The id of the subscription an event is about: the event's own object for a subscription event, or the
+     * subscription of the invoice for an invoice event.
+     *
+     * @param  array{id: string, name: string}&array<string, mixed>  $payload
+     */
+    protected function subscriptionIdFromEvent(array $payload): ?string
+    {
+        $id = data_get($payload, 'data.object.id');
+
+        if (! is_string($id)) {
+            return null;
+        }
+
+        if (str_starts_with($payload['name'], 'invoice.') && str_starts_with($id, 'inv_')) {
+            $id = Cashier::airwallex()->invoices->retrieve($id)->subscription_id ?? null;
+
+            if (! is_string($id)) {
+                return null;
+            }
+        }
+
+        return str_starts_with($id, 'sub_') ? $id : null;
     }
 
     /**
