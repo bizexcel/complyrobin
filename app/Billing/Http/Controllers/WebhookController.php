@@ -286,7 +286,7 @@ class WebhookController extends Controller
         $user = $this->getUserByAirwallexId($data->billing_customer_id);
 
         if (! $user instanceof Organisation || (isset($metadata['organisation_id']) && $metadata['organisation_id'] !== $user->getKey())) {
-            Log::warning('billing.webhook.unmatched_subscription', ['subscription' => $id, 'event' => $payload['id'] ?? null]);
+            Log::warning('billing.webhook.unmatched_subscription', ['subscription' => $id, 'event' => $payload['id']]);
 
             return [null, null, []];
         }
